@@ -39,6 +39,8 @@ def sdbm_hash(instr):
 
 def do_User():
 	
+	global USER_STATE, USER_NAME
+	
 	# Check state
 	if USER_STATE != "START":
 		CmdWin.insert(1.0, "\nInvalid instruction")
