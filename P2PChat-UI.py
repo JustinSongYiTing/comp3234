@@ -50,7 +50,7 @@ def sdbm_hash(instr):
 def do_User():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME
+	global USER_STATE, USER_NAME, USER_SCKT
 	
 	# Check state
 	if USER_STATE != "START":
