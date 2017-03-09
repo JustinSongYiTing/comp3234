@@ -14,9 +14,19 @@ import socket
 #
 # Global variables
 #
+
 USER_STATE = "START"
 USER_NAME = ""
+# Create a socket for sending messages to the server
+USER_SCKT = socket.socket()
 
+# Connect to the server
+try:
+	USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
+except socket.error as cErr:
+	CmdWin.insert(1.0, "\nFail to reach the server")
+	print("Connection error: ", cErr)
+	sys.exit(1)
 
 #
 # This is the hash function for generating a unique
@@ -39,6 +49,7 @@ def sdbm_hash(instr):
 
 def do_User():
 	
+	# List out global variables
 	global USER_STATE, USER_NAME
 	
 	# Check state
@@ -64,10 +75,39 @@ def do_User():
 
 
 def do_List():
+	
+	# List out global variables
+	global USER_STATE, USER_NAME, USER_SCKT
+	
 	CmdWin.insert(1.0, "\nPress List")
 
 
 
+	# Send list request to the server
+	list_rqt = "L::\r\n"
+	USER_SCKT.send(list_rqt.encode("ascii"))
+
+	# Receive list answer from the server
+	try:
+		list_ans = USER_SCKT.recv(500)
+	except socker.error as rErr:
+		CmdWin.insert(1.0, "\nFail to recieve list from the server")
+		print("Recieve error: ", cErr)
+		return
+
+	# Analyze and print the result
+	chatrooms = list_ans.decode("ascii").split(':')
+	# If no active chatroom, chatrooms = ['G', '', '\r\n']
+	if len(chatrooms) == 3:
+		CmdWin.insert(1.0, "\nNo active chatroom")
+	else:
+		CmdWin.insert(1.0, "\nHere are the active chatrooms:")
+		i = 1
+		while chatrooms[i] != '':
+			CmdWin.insert("\n\tchatrooms[i]")
+			i = i+1
+
+	return
 
 
 def do_Join():
