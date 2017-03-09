@@ -14,7 +14,8 @@ import socket
 #
 # Global variables
 #
-
+USER_STATE = "START"
+USER_NAME = ""
 
 
 #
@@ -37,13 +38,34 @@ def sdbm_hash(instr):
 #
 
 def do_User():
-	outstr = "\n[User] username: "+userentry.get()
+	
+	# Check state
+	if USER_STATE != "START":
+		CmdWin.insert(1.0, "\nInvalid instruction")
+		return
+	
+	# Check if it is an empty entry
+	if userentry.get() == "":
+		CmdWin.insert(1.0, "\nUser name cannot be empty")
+		return
+
+	# Assign entry to USER_NAME
+	USER_NAME = userentry.get()
+	outstr = "\n[User] username: "+USER_NAME
 	CmdWin.insert(1.0, outstr)
 	userentry.delete(0, END)
+
+	# Set USER_STATE to NAMED
+	USER_STATE = "NAMED"
+
+	return
 
 
 def do_List():
 	CmdWin.insert(1.0, "\nPress List")
+
+
+
 
 
 def do_Join():
