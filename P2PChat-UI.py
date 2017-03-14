@@ -105,7 +105,7 @@ def do_List():
 		CmdWin.insert(1.0, "\nHere are the active chatrooms:")
 		i = 1
 		while chatrooms[i] != '':
-			CmdWin.insert("\n\tchatrooms[i]")
+			CmdWin.insert("\n\t"+chatrooms[i])
 			i = i+1
 
 	return
@@ -151,7 +151,7 @@ def do_Join():
 	elif join_resp_decode[0] == "M":
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + room_name)
 		USER_STATE = "JOINED"
-		CmdWin.insert(1.0, "\nHere are the room members: ")
+		room_member = "\nHere are the members in your chatgroup: "
 		count = 0
 		index = 2
 		# display all of the users
@@ -160,12 +160,12 @@ def do_Join():
 			group_username = join_resp_decode[index]
 			group_userip = join_resp_decode[index+1]
 			group_userport = join_resp_decode[index+2]
-			CmdWin.insert("\n" + count + ": " + group_username)
-			CmdWin.insert("\t" + group_userip)
-			CmdWin.insert("\t" + group_userport)
+			room_member += ("\n" + str(count) + ": " + group_username)
+			room_member += ("\t" + group_userip)
+			room_member += ("\t" + group_userport)
 			count += 1
 			index += 3
-	
+		CmdWin.insert(1.0, room_member)
 	return
 
 def do_Send():
