@@ -45,6 +45,21 @@ def sdbm_hash(instr):
 
 
 #
+# KEEPALIVE procedure
+#
+def keepalive_thd():
+	
+	# List out global variables
+	global USER_STATE, USER_NAME, USER_SCKT
+
+
+
+
+
+
+
+
+#
 # Functions to handle user input
 #
 
@@ -102,16 +117,22 @@ def do_List():
 	if len(chatrooms) == 3:
 		CmdWin.insert(1.0, "\nNo active chatroom")
 	else:
-		CmdWin.insert(1.0, "\nHere are the active chatrooms:")
+		room_list = "\nHere are the active chatrooms:"
 		i = 1
 		while chatrooms[i] != '':
-			CmdWin.insert("\n\t"+chatrooms[i])
-			i = i+1
+			room_list += ("\n\t" + chatrooms[i])
+			i += 1
+		CmdWin.insert(1.0, room_list)
 
 	return
 
 
 def do_Join():
+	
+	# List out global variables
+	global USER_STATE, USER_NAME, USER_SCKT
+	
+	
 	CmdWin.insert(1.0, "\nPress JOIN")
 	# Have not yet input username
 	if USER_STATE == "START":
@@ -133,26 +154,33 @@ def do_Join():
 	join_requ = "J:" + room_name + ":" + USER_NAME + ":" + USER_SCKT.getsockname()[0] + ":" + USER_PORT+"::\r\n"
 	USER_SCKT.send(join_requ.encode("ascii"))
 
+	userentry.delete(0, END)
+
 	try:
 		join_resp = USER_SCKT.recv(500)
 	except socket.error as respErr:
 		CmdWin.insert(1.0, "\nFail to join the chatgroup "+ room_name + " due to unknown server error")
 		print("[do_Join] Receive error: ", respErr)
 		return
+	
 	join_resp_decode = join_resp.decode("ascii").split(':')
+
 	# Room server responds with an error
 	# F:error message::\r\n
 	if join_resp_decode[0] == "F":
 		CmdWin.insert(1.0, "\nSome error occured in the Room server. Please try again later.")
 		CmdWin.insert("\n"+join_resp_decode[1])
 		return
+
 	# Room server responds normally
 	# M:MSID:userA:A_IP:A_port:userB:B_IP:B_port::\r\n
 	elif join_resp_decode[0] == "M":
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + room_name)
 		USER_STATE = "JOINED"
+
+		# representing a string for all of the room members in the room
 		room_member = "\nHere are the members in your chatgroup: "
-		count = 0
+		count = 1
 		index = 2
 		# display all of the users
 		# 1: userA  A_IP  A_port
@@ -165,7 +193,15 @@ def do_Join():
 			room_member += ("\t" + group_userport)
 			count += 1
 			index += 3
+
 		CmdWin.insert(1.0, room_member)
+
+
+	# Start of the KEEPALIVE procedure
+
+
+
+
 	return
 
 def do_Send():
