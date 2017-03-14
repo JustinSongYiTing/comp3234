@@ -19,7 +19,8 @@ USER_STATE = "START"
 USER_NAME = ""
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
-
+#user port number (just for convenience)
+USER_PORT = sys.argv[3]
 # Connect to the server
 try:
 	USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
@@ -52,14 +53,14 @@ def do_User():
 	# List out global variables
 	global USER_STATE, USER_NAME, USER_SCKT
 	
-	# Check state
-	if USER_STATE != "START":
-		CmdWin.insert(1.0, "\nInvalid instruction")
+	# Check state. Only accept request before the user join any chatgroup
+	if USER_STATE != "START" and USER_NAME != "NAMED" :
+		CmdWin.insert(1.0, "\nYou have already input your username: " + USER_NAME)
 		return
 	
 	# Check if it is an empty entry
 	if userentry.get() == "":
-		CmdWin.insert(1.0, "\nUser name cannot be empty")
+		CmdWin.insert(1.0, "\nUsername cannot be empty")
 		return
 
 	# Assign entry to USER_NAME
@@ -90,9 +91,9 @@ def do_List():
 	# Receive list answer from the server
 	try:
 		list_ans = USER_SCKT.recv(500)
-	except socker.error as rErr:
+	except socket.error as rErr:
 		CmdWin.insert(1.0, "\nFail to recieve list from the server")
-		print("Recieve error: ", cErr)
+		print("[do_List] Receive error: ", cErr)
 		return
 
 	# Analyze and print the result
@@ -112,7 +113,60 @@ def do_List():
 
 def do_Join():
 	CmdWin.insert(1.0, "\nPress JOIN")
+	# Have not yet input username
+	if USER_STATE == "START":
+		CmdWin.insert(1.0, "\nPlease input your username first")
+		return
+	# Already joined a chatroom
+	if USER_STATE == "JOINED":
+		CmdWin.insert(1.0, "\nYou have already joined a chatroom group")
+		return
 
+	# check TCP connection
+
+	# send a JOIN request to roomserver
+	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
+	room_name = userentry.get()
+	if room_name == "":
+		CmdWin.insert(1.0, "\nRoom name cannot be empty")
+		return
+	join_requ = "J:" + room_name + ":" + USER_NAME + ":" + USER_SCKT.getsockname()[0] + ":" + USER_PORT+"::\r\n"
+	USER_SCKT.send(join_requ.encode("ascii"))
+
+	try:
+		join_resp = USER_SCKT.recv(500)
+	except socket.error as respErr:
+		CmdWin.insert(1.0, "\nFail to join the chatgroup "+ room_name + " due to unknown server error")
+		print("[do_Join] Receive error: ", respErr)
+		return
+	join_resp_decode = join_resp.decode("ascii").split(':')
+	# Room server responds with an error
+	# F:error message::\r\n
+	if join_resp_decode[0] == "F":
+		CmdWin.insert(1.0, "\nSome error occured in the Room server. Please try again later.")
+		CmdWin.insert("\n"+join_resp_decode[1])
+		return
+	# Room server responds normally
+	# M:MSID:userA:A_IP:A_port:userB:B_IP:B_port::\r\n
+	elif join_resp_decode[0] == "M":
+		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + room_name)
+		USER_STATE = "JOINED"
+		CmdWin.insert(1.0, "\nHere are the room members: ")
+		count = 0
+		index = 2
+		# display all of the users
+		# 1: userA  A_IP  A_port
+		while index < len(join_resp_decode)-2:
+			group_username = join_resp_decode[index]
+			group_userip = join_resp_decode[index+1]
+			group_userport = join_resp_decode[index+2]
+			CmdWin.insert("\n" + count + ": " + group_username)
+			CmdWin.insert("\t" + group_userip)
+			CmdWin.insert("\t" + group_userport)
+			count += 1
+			index += 3
+	
+	return
 
 def do_Send():
 	CmdWin.insert(1.0, "\nPress Send")
