@@ -45,6 +45,21 @@ def sdbm_hash(instr):
 
 
 #
+# KEEPALIVE procedure
+#
+def keepalive_thd():
+	
+	# List out global variables
+	global USER_STATE, USER_NAME, USER_SCKT
+
+
+
+
+
+
+
+
+#
 # Functions to handle user input
 #
 
@@ -105,13 +120,18 @@ def do_List():
 		CmdWin.insert(1.0, "\nHere are the active chatrooms:")
 		i = 1
 		while chatrooms[i] != '':
-			CmdWin.insert("\n\tchatrooms[i]")
+			CmdWin.insert(1.0,"\t" + chatrooms[i])
 			i = i+1
 
 	return
 
 
 def do_Join():
+	
+	# List out global variables
+	global USER_STATE, USER_NAME, USER_SCKT
+	
+	
 	CmdWin.insert(1.0, "\nPress JOIN")
 	# Have not yet input username
 	if USER_STATE == "START":
@@ -132,6 +152,8 @@ def do_Join():
 		return
 	join_requ = "J:" + room_name + ":" + USER_NAME + ":" + USER_SCKT.getsockname()[0] + ":" + USER_PORT+"::\r\n"
 	USER_SCKT.send(join_requ.encode("ascii"))
+
+	userentry.delete(0, END)
 
 	try:
 		join_resp = USER_SCKT.recv(500)
@@ -165,7 +187,16 @@ def do_Join():
 			CmdWin.insert("\t" + group_userport)
 			count += 1
 			index += 3
-	
+
+# Start of the KEEPALIVE procedure
+
+
+
+
+
+
+
+
 	return
 
 def do_Send():
