@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-# Student name and No.:
-# Student name and No.:
-# Development platform:
-# Python version:
-# Version:
+# Student name and No.: Liao Hsuan-cheng 3035120483
+# Student name and No.: Song Yi Ting     3035124829
+# Development platform: Mac OS
+# Python version: 3.6
+# Version: 10
 
 
 from tkinter import *
@@ -19,11 +19,9 @@ class TimerClass(threading.Thread):
 		threading.Thread.__init__(self)
 		self.event = threading.Event()
 
-	def run(self):
-		count = 0 
+	def run(self): 
 		while not self.event.is_set():
 			send_join()
-			print("keepalive processed ", count, " times")
 			self.event.wait(20)
 
 	def stop(self):
@@ -167,7 +165,7 @@ def do_Join():
 		return
 	# user already joined a chatroom
 	if USER_STATE == "JOINED":
-		CmdWin.insert(1.0, "\nYou have already joined a chatroom group")
+		CmdWin.insert(1.0, "\nYou have already joined a chatroom group: " + USER_ROOM)
 		userentry.delete(0, END)
 		return
 

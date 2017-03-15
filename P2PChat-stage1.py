@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 
-# Student name and No.:
-# Student name and No.:
-# Development platform:
-# Python version:
-# Version:
+# Student name and No.: Liao Hsuan-cheng 3035120483
+# Student name and No.: Song Yi Ting     3035124829
+# Development platform: Mac OS
+# Python version: 3.6
+# Version: 10
 
 
 from tkinter import *
