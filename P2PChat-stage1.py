@@ -167,7 +167,7 @@ def do_Join():
 		return
 	# user already joined a chatroom
 	if USER_STATE == "JOINED":
-		CmdWin.insert(1.0, "\nYou have already joined a chatroom group")
+		CmdWin.insert(1.0, "\nYou have already joined a chatroom group: " + USER_ROOM)
 		userentry.delete(0, END)
 		return
 
