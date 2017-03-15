@@ -19,11 +19,9 @@ class TimerClass(threading.Thread):
 		threading.Thread.__init__(self)
 		self.event = threading.Event()
 
-	def run(self):
-		count = 0 
+	def run(self): 
 		while not self.event.is_set():
 			send_join()
-			print("keepalive processed ", count, " times")
 			self.event.wait(20)
 
 	def stop(self):
