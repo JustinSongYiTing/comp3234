@@ -46,7 +46,6 @@ USER_FSCKT = {}
 # (hashID, (ip, port))
 USER_BSCKT = {}
 
-
 # user ip address
 USER_IP = ""
 
@@ -56,7 +55,7 @@ USER_PORT = sys.argv[3]
 # user chatroom name
 USER_ROOM = ""
 
-# dictionary for members in the same chatroom
+# a dictionary for members in the same chatroom
 USER_MEMBER = {}
 
 # user message ID (starting from 0)
@@ -68,15 +67,19 @@ USER_HASHID = 0
 # a timer object
 KEEPALIVE = TimerClass()
 
-# Connect to the server
-try:
-	USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
-	USER_IP = USER_SCKT.getsockname()[0]
-	USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
-except socket.error as cErr:
-	CmdWin.insert(1.0, "\nFail to reach the server")
-	print("Connection error: ", cErr)
-	sys.exit(1)
+# a list of all thread handlers
+USER_THREAD = []
+
+# a lock object to protect global variables
+gLock = threading.Lock()
+
+# a flag variable to control all threads
+all_thread_running = True
+
+# server info
+SERVER_IP = 0
+SERVER_PORT = 0
+
 
 #
 # End of Global variables
@@ -160,7 +163,35 @@ def connect_member():
 # End of Other function calls
 #
 
+#
+# Thread handlers
+#
 
+def forward_thd():
+	
+	connect_member()
+
+	return
+
+def listen_thd():
+
+	# create a socket for continuous listening
+	listen_sckt = socket.socket()
+	
+	# inform OS not to hold up the port number and allow us restart the listening thread
+	listen_sckt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
+	# set the server listening socket to have a timeout duration of 1.0 second
+	sockfd.settimeout(1.0)
+
+
+
+	return
+
+
+#
+# End of Thread handlers
+#
 
 #
 # Functions to handle user input
@@ -303,8 +334,22 @@ def do_Join():
 		# start KEEPALIVE timer
 		KEEPALIVE.start()
 
-		# select a P2PChat peer for initiating a TCP connection
-		connect_member()
+		# create and start a forward thread to select a P2PChat peer for initiating a TCP connection
+		fthd = threading.Thread(name="forwardThread", target=forward_thd)
+		fthd.start()
+
+		# add the forward thread to the list of thread handlers
+		USER_THREAD.append(fthd)
+
+		# create and start a listening thread
+		lthd = threading.Thread(name="listenThread", target=listen_thd)
+		lthd.start()
+
+		# add the forward thread to the list of thread handlers
+		USER_THREAD.append(lthd)
+
+
+
 
 	return
 
@@ -344,6 +389,8 @@ def do_Quit():
 #
 # End of Functions to handle user input
 #
+
+
 
 #
 # Set up of Basic UI
@@ -395,6 +442,20 @@ def main():
 	if len(sys.argv) != 4:
 		print("P2PChat.py <server address> <server port no.> <my port no.>")
 		sys.exit(2)
+
+	# Record server info
+	SERVER_IP = sys.argv[1]
+	SERVER_PORT = sys.argv[2]
+	
+	# Connect to the server
+	try:
+		USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
+		USER_IP = USER_SCKT.getsockname()[0]
+		USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
+	except socket.error as cErr:
+		CmdWin.insert(1.0, "\nFail to reach the server")
+		print("Connection error: ", cErr)
+		sys.exit(1)
 
 	win.mainloop()
 	
