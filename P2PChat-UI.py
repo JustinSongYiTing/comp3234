@@ -49,13 +49,14 @@ USER_BSCKT = {}
 # user ip address
 USER_IP = ""
 
-# user port number (just for convenience)
+# user port number
 USER_PORT = sys.argv[3]
 
 # user chatroom name
 USER_ROOM = ""
 
 # a dictionary for members in the same chatroom
+# (hashID, (name, ip, port, msgid))
 USER_MEMBER = {}
 
 # user message ID (starting from 0)
@@ -110,7 +111,9 @@ def check_connection(ip, port):
 		USER_SCKT.connect((SERVER_IP, SERVER_PORT))
 	except OSError as e:
 		print("[check_connection] OSError: ", e)
-		return
+		return False
+	return True
+
 def set_connection(ip, port):
 
 
@@ -123,8 +126,11 @@ def hash_list():
 def p2p_handshake():
 	# P:roomname:username:IP:Port:msgID::\r\n
 	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + USER_MSGID + "::\r\n"
-	# S:msgID::\r\n
-	# No response; just close the connection
+	# send message
+	# receive message 
+	# no error: get S:msgID::\r\n 	return True
+	# error: No response; just close the connection 	return False
+
 
 # A funtion for sending out JOIN request
 def send_join():
@@ -158,11 +164,16 @@ def connect_member():
 	start = lst.index(USER_HASHID)+1
 	
 	while (lst[start] != USER_HASHID):
-		if:
+		ip = USER_MEMBER[lst[start]][1]
+		port = USER_MEMBER[lst[start]][2]
+		# if there is a BACKWARD LINK between start and this program
+		if lst[start] in USER_MEMBER:
 			start = (start+1) % lst.size()
 		else:
+			# set_connection to lst[start]
 			if:
-				if:
+
+				if p2p_handshake():
 					break
 				else:
 					start = (start+1) % lst.size()
@@ -326,15 +337,15 @@ def do_Join():
 		index = 2
 		# format: userA  A_IP  A_port
 		while index < len(join_resp_decode)-2:
-			group_username = join_resp_decode[index]
-			group_userip = join_resp_decode[index+1]
-			group_userport = join_resp_decode[index+2]
+			name = join_resp_decode[index]
+			ip = join_resp_decode[index+1]
+			port = join_resp_decode[index+2]
 			room_member += ("\n\t" + str(count) + ": " + group_username)
 			room_member += ("\t" + group_userip)
 			room_member += ("\t" + group_userport)
 			# fill in member information
-			hashid = sdbm_hash(group_username+group_userip+group_userport)
-			USER_MEMBER[hashid] = (group_username, group_userip, group_userport,0)
+			hashid = sdbm_hash(name+ip+port)
+			USER_MEMBER[hashid] = (name, ip, port,0)
 			count += 1
 			index += 3
 
