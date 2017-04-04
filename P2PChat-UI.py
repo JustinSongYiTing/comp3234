@@ -180,13 +180,11 @@ def client_thd(csckt, caddr):
 	try:
 		msg = csckt.recv(500)
 	except socket.error as err:
-		print("[client_thd] Message receiving error from %s: %s" % (myName, err))
-
-
+		print("[client_thd] Message error from %s: %s" % (myName, err))
 
 	# add the new client socket to the USER_BSCKT
 	gLock.acquire()
-	hashID = sdbm_hash(
+	hashID = sdbm_hash()
 	USER_BSCKT[]=caddr
 	gLock.release()
 
