@@ -266,12 +266,29 @@ def do_Join():
 
 def do_Send():
 	CmdWin.insert(1.0, "\nPress Send")
-	message = userentry.get()
-	# some modification to escape ":"
-	# get length
-	# hash ID
-	# hash username
-	# put together T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
+	msg = userentry.get()
+	# check if user input is empty
+	if msg == "":
+		return
+	# check if the program has joined or connected to a chatroom program
+	if USER_STATE == "JOINED":
+		CmdWin.insert(1.0, "\nYou have not yet connect to a chatroom network. Please try again later.")
+	if USER_STATE != "CONNECTED":
+		CmdWin.insert(1.0, "\nYou have not yet join a chatroom.")
+		return
+
+	# T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
+	message = "T:"+USER_ROOM+":"+USER_HASHID+":"+USER_NAME+":"+USER_MSGID+":"+str(len(msg))+msg+"::\r\n"
+	# send to all members in the member list
+	# FORWARD LINK
+		# send message
+	# BACKWARD LINK
+	for hid, tup in USER_BSCKT:
+		# send message
+
+	# display message
+	CmdWin.insert(1.0, "\n"+USER_NAME+": "+msg)
+	
 
 
 def do_Quit():
