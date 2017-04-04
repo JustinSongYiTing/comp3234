@@ -37,15 +37,24 @@ USER_STATE = "START"
 USER_NAME = ""
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
+# socket list for BACKWARD LINK
+SCKT_LIST = []
+# user ip address
+USER_IP = ""
 # user port number (just for convenience)
 USER_PORT = sys.argv[3]
 # user chatroom name
 USER_ROOM = ""
+# dictionary for members in the same chatroom
+USER_MEMBER = {}
+# user message ID (starting from 0)
+USER_MSGID = 0
 # a timer object
 KEEPALIVE = TimerClass()
 # Connect to the server
 try:
 	USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
+	USER_IP = USER_SCKT.getsockname()[0]
 except socket.error as cErr:
 	CmdWin.insert(1.0, "\nFail to reach the server")
 	print("Connection error: ", cErr)
@@ -65,6 +74,34 @@ def sdbm_hash(instr):
 		hash = int(ord(c)) + (hash << 6) + (hash << 16) - hash
 	return hash & 0xffffffffffffffff
 
+def hash_list():
+	gList = []
+	for hid, info in USER_MEMBER.items():
+		gList.append = hid
+	return gList.sort()
+
+def p2p_handshake():
+	# P:roomname:username:IP:Port:msgID::\r\n
+	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + USER_MSGID + "::\r\n"
+	# S:msgID::\r\n
+	# No response; just close the connection
+
+
+def connect_member():
+	lst = hash_list()
+	hash_id = sdbm_hash(USER_NAME+USER_IP+USER_PORT)
+	start = lst.index(hash_id)+1
+	while (lst[start] != hash_id):
+		if:
+			start = (start+1) % lst.size()
+		else:
+			if:
+				if:
+					break
+				else:
+					start = (start+1) % lst.size()
+			else:
+				start = (start+1) % lst.size()
 #
 # Functions to handle user input
 #
@@ -72,7 +109,7 @@ def sdbm_hash(instr):
 def do_User():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_PORT, USER_ROOM, KEEPALIVE 
+	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE 
 	
 	# Check state. Only accept request before the user join any chatgroup
 	if USER_STATE != "START" and USER_STATE != "NAMED" :
@@ -99,7 +136,7 @@ def do_User():
 def do_List():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_PORT, USER_ROOM, KEEPALIVE 
+	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE 
 	
 	CmdWin.insert(1.0, "\nPress List")
 
@@ -134,10 +171,10 @@ def do_List():
 # send out JOIN request
 def send_join():
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_PORT, USER_ROOM, KEEPALIVE
+	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE
 
 	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
-	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_SCKT.getsockname()[0] + ":" + USER_PORT+"::\r\n"
+	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP.getsockname()[0] + ":" + USER_PORT+"::\r\n"
 	# send a JOIN request to roomserver
 	USER_SCKT.send(join_requ.encode("ascii"))
 
@@ -154,7 +191,7 @@ def send_join():
 def do_Join():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_PORT, USER_ROOM, KEEPALIVE
+	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE
 	
 	
 	CmdWin.insert(1.0, "\nPress JOIN")
@@ -214,6 +251,9 @@ def do_Join():
 			room_member += ("\n\t" + str(count) + ": " + group_username)
 			room_member += ("\t" + group_userip)
 			room_member += ("\t" + group_userport)
+			# storing member information
+			hashid = sdbm_hash(group_username+group_userip+group_userport)
+			USER_MEMBER[hashid] = (group_username, group_userip, group_userport)
 			count += 1
 			index += 3
 		# show chatroom members
@@ -222,12 +262,21 @@ def do_Join():
 		KEEPALIVE.start()
 
 
+
 		# select a P2PChat peer for initiating a TCP connection
+
+
 
 	return
 
 def do_Send():
 	CmdWin.insert(1.0, "\nPress Send")
+	message = userentry.get()
+	# some modification to escape ":"
+	# get length
+	# hash ID
+	# hash username
+	# put together T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
 
 
 def do_Quit():
