@@ -102,6 +102,14 @@ def sdbm_hash(instr):
 # Other function calls
 #
 
+def check_connection(ip, port):
+	try:
+		USER_SCKT.connect((SERVER_IP, SERVER_PORT))
+	except OSError as e:
+		print("[check_connection] OSError: ", e)
+		return
+def set_connection(ip, port):
+
 
 def hash_list():
 	gList = []
@@ -141,8 +149,10 @@ def connect_member():
 
 	lst = hash_list()
 	
-	if len(lst) != 1:
-		start = lst.index(USER_HASHID)+1
+	if len(lst) == 1:
+		return
+	
+	start = lst.index(USER_HASHID)+1
 	
 	while (lst[start] != USER_HASHID):
 		if:
