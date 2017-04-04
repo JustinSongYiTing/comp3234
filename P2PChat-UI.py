@@ -38,13 +38,11 @@ USER_NAME = ""
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
 
-# socket dictionary for FORWARD LINK
-# (hashID, (ip, port))
-USER_FSCKT = {}
+# socket list for FORWARD LINK
+USER_FSCKT = []
 
-# socket dictionary for BACKWARD LINK
-# (hashID, (ip, port))
-USER_BSCKT = {}
+# socket list for BACKWARD LINK
+USER_BSCKT = []
 
 # user ip address
 USER_IP = ""
@@ -194,6 +192,29 @@ def forward_thd():
 
 	return
 
+def client_thd(csckt, caddr):
+
+	# get name of thread
+	myName = threading.currentThread().name
+	
+	# handshaking procedure
+	try:
+		msg = csckt.recv(500)
+	except socket.error as err:
+		print("[client_thd] Message receiving error from %s: %s" % (myName, err))
+
+
+
+	# add the new client socket to the USER_BSCKT
+	gLock.acquire()
+	hashID = sdbm_hash(
+	USER_BSCKT[]=caddr
+	gLock.release()
+
+
+
+	return
+
 def listen_thd():
 
 	# create a socket for continuous listening
@@ -203,9 +224,39 @@ def listen_thd():
 	listen_sckt.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 	# set the server listening socket to have a timeout duration of 1.0 second
-	sockfd.settimeout(1.0)
+	listen_sckt.settimeout(1.0)
 
+	try:
+		sockfd.bind((USER_IP, USER_PORT))
+	except socket.error as err:
+		print("[listen_thd] Socket binding error: ", err)
+		sys.exit(1)
 
+	# set socket listening queue
+	listen_sckt.listen(5)
+
+	while all_thread_running:
+		# wait for incoming connection request
+		# however, the socket may unblock after 1.0 second
+		try:
+			newsckt, caddr = listen_sckt.accept()
+		except socket.timeout:
+			# raise a timeout exception if the timeout duration has elapsed
+			# call accept again without other exception
+			continue
+
+		# the system just accepted a new client connection
+		print("[listen_thd] A new client has arrived. It is at:", caddr)
+
+		# generate a name to this client
+		cname = caddr[0]+'_'+str(caddr[1])
+
+		# create and start a new thread to handle this new connection
+		cthd = threading.Thread(name=cname, target= client_thd, args=(newsckt,caddr,))
+		cthd.start()
+
+		# add this new thread to USER_THREAD list
+		USER_THREAD.append(cthd)
 
 	return
 
