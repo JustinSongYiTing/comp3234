@@ -15,7 +15,7 @@ P2P HANDSHAKE
 			USER_STATE = "CONNECTED"
 
 
-MESSAGE FLODDING
+MESSAGE FLOODING
 	receive message T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
 		if not recognize originHID:
 			ask the server
@@ -31,3 +31,8 @@ FORWARD LINK
 	check forward link periodically
 	if broken, connect_member()
 		if succeed: USER_STATE = "CONNECTED"
+		
+		
+CLIENT_THD
+	text flooding
+		need to add the procedure of checking msgID
