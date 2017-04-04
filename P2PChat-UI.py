@@ -177,6 +177,7 @@ def connect_member():
 					start = (start+1) % lst.size()
 			else:
 				start = (start+1) % lst.size()
+	return
 
 #
 # End of Other function calls
@@ -187,7 +188,6 @@ def connect_member():
 #
 
 def forward_thd():
-	
 	connect_member()
 
 	return
@@ -203,18 +203,14 @@ def client_thd(csckt, caddr):
 	except socket.error as err:
 		print("[client_thd] Message receiving error from %s: %s" % (myName, err))
 
-
-
 	# add the new client socket to the USER_BSCKT
 	gLock.acquire()
 	hashID = sdbm_hash(
 	USER_BSCKT[]=caddr
 	gLock.release()
-
-
-
 	return
 
+	
 def listen_thd():
 
 	# create a socket for continuous listening
