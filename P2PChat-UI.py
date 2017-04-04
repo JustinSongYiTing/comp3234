@@ -6,6 +6,7 @@
 # Python version: 3.6
 # Version: 10
 
+# Testing
 
 from tkinter import *
 import sys
@@ -219,6 +220,9 @@ def do_Join():
 		CmdWin.insert(1.0, room_member)
 		# start KEEPALIVE timer
 		KEEPALIVE.start()
+
+
+		# select a P2PChat peer for initiating a TCP connection
 
 	return
 
