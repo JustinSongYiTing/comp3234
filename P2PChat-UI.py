@@ -6,7 +6,6 @@
 # Python version: 3.6
 # Version: 10
 
-
 from tkinter import *
 import sys
 import socket
@@ -29,35 +28,59 @@ class TimerClass(threading.Thread):
 
 
 #
-# Global variables
+# Global variables list
 #
 
 USER_STATE = "START"
+
 USER_NAME = ""
+
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
-# socket list for BACKWARD LINK
-SCKT_LIST = []
+
+# socket dictionary for FORWARD LINK
+# (hashID, (ip, port))
+USER_FSCKT = {}
+
+# socket dictionary for BACKWARD LINK
+# (hashID, (ip, port))
+USER_BSCKT = {}
+
+
 # user ip address
 USER_IP = ""
+
 # user port number (just for convenience)
 USER_PORT = sys.argv[3]
+
 # user chatroom name
 USER_ROOM = ""
+
 # dictionary for members in the same chatroom
 USER_MEMBER = {}
+
 # user message ID (starting from 0)
 USER_MSGID = 0
+
+# user hash id
+USER_HASHID = 0
+
 # a timer object
 KEEPALIVE = TimerClass()
+
 # Connect to the server
 try:
 	USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
 	USER_IP = USER_SCKT.getsockname()[0]
+	USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
 except socket.error as cErr:
 	CmdWin.insert(1.0, "\nFail to reach the server")
 	print("Connection error: ", cErr)
 	sys.exit(1)
+
+#
+# End of Global variables
+#
 
 #
 # This is the hash function for generating a unique
@@ -73,10 +96,17 @@ def sdbm_hash(instr):
 		hash = int(ord(c)) + (hash << 6) + (hash << 16) - hash
 	return hash & 0xffffffffffffffff
 
+
+
+#
+# Other function calls
+#
+
+
 def hash_list():
 	gList = []
 	for hid, info in USER_MEMBER.items():
-		gList.append = hid
+		gList.append(hid)
 	return gList.sort()
 
 def p2p_handshake():
@@ -85,12 +115,36 @@ def p2p_handshake():
 	# S:msgID::\r\n
 	# No response; just close the connection
 
+# A funtion for sending out JOIN request
+def send_join():
+	# List out global variables
+	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE
+
+	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
+	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP.getsockname()[0] + ":" + USER_PORT+"::\r\n"
+	# send a JOIN request to roomserver
+	USER_SCKT.send(join_requ.encode("ascii"))
+
+	# check TCP connection
+
+	try:
+		join_resp = USER_SCKT.recv(500)
+	except socket.error as respErr:
+		print("[send_join] Receive error: ", respErr)
+		return "error"
+	# return the decoded and split response
+	return join_resp.decode("ascii").split(':')
+
+
 
 def connect_member():
+
 	lst = hash_list()
-	hash_id = sdbm_hash(USER_NAME+USER_IP+USER_PORT)
-	start = lst.index(hash_id)+1
-	while (lst[start] != hash_id):
+	
+	if len(lst) != 1:
+		start = lst.index(USER_HASHID)+1
+	
+	while (lst[start] != USER_HASHID):
 		if:
 			start = (start+1) % lst.size()
 		else:
@@ -101,6 +155,13 @@ def connect_member():
 					start = (start+1) % lst.size()
 			else:
 				start = (start+1) % lst.size()
+
+#
+# End of Other function calls
+#
+
+
+
 #
 # Functions to handle user input
 #
@@ -167,26 +228,6 @@ def do_List():
 	return
 
 
-# send out JOIN request
-def send_join():
-	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE
-
-	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
-	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP.getsockname()[0] + ":" + USER_PORT+"::\r\n"
-	# send a JOIN request to roomserver
-	USER_SCKT.send(join_requ.encode("ascii"))
-
-	# check TCP connection
-
-	try:
-		join_resp = USER_SCKT.recv(500)
-	except socket.error as respErr:
-		print("[send_join] Receive error: ", respErr)
-		return "error"
-	# return the decoded and split response
-	return join_resp.decode("ascii").split(':')
-
 def do_Join():
 	
 	# List out global variables
@@ -234,15 +275,15 @@ def do_Join():
 	# room server responds normally
 	# M:MSID:userA:A_IP:A_port:userB:B_IP:B_port::\r\n
 	elif join_resp_decode[0] == "M":
+	
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + USER_ROOM)
 		USER_STATE = "JOINED"
 
-		# representing a string for all of the room members in the room
+		# concatenate a string for all of the room members in the room
 		room_member = "\nHere are the members in your chatgroup: "
 		count = 1
 		index = 2
-		# display all of the users
-		# 1: userA  A_IP  A_port
+		# format: userA  A_IP  A_port
 		while index < len(join_resp_decode)-2:
 			group_username = join_resp_decode[index]
 			group_userip = join_resp_decode[index+1]
@@ -250,17 +291,20 @@ def do_Join():
 			room_member += ("\n\t" + str(count) + ": " + group_username)
 			room_member += ("\t" + group_userip)
 			room_member += ("\t" + group_userport)
-			# storing member information
+			# fill in member information
 			hashid = sdbm_hash(group_username+group_userip+group_userport)
-			USER_MEMBER[hashid] = (group_username, group_userip, group_userport)
+			USER_MEMBER[hashid] = (group_username, group_userip, group_userport,0)
 			count += 1
 			index += 3
+
 		# show chatroom members
 		CmdWin.insert(1.0, room_member)
+
 		# start KEEPALIVE timer
 		KEEPALIVE.start()
 
-		# establish TCP connection
+		# select a P2PChat peer for initiating a TCP connection
+		connect_member()
 
 	return
 
@@ -296,6 +340,10 @@ def do_Quit():
 	USER_STATE = "TERMINATED"
 	KEEPALIVE.stop()
 	sys.exit(0)
+
+#
+# End of Functions to handle user input
+#
 
 #
 # Set up of Basic UI
