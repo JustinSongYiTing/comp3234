@@ -194,7 +194,6 @@ def connect_member(sckt):
 
 	if len(lst) == 1:
 		return False
-	print("[connect_member] user hashid is ", USER_HASHID)
 	start = (lst.index(USER_HASHID)+1)% len(lst)
 	
 	while (lst[start] != USER_HASHID):
@@ -220,15 +219,14 @@ def connect_member(sckt):
 			if p2p_handshake(lst[start], sckt):
 				USER_FSCKT.append((lst[start], sckt))
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0])
+				
 				gLock.acquire()
-				print("[connect_member] state connected")
 				USER_STATE = "CONNECTED"
 				gLock.release()
 				return True
 			else:
 				start = (start+1) % len(lst)
 				continue
-	print("[connect_member] end while loop")
 	return False
 
 
@@ -706,7 +704,7 @@ def do_Join():
 			room_member += ("\t" + port)
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
-			USER_MEMBER[hashid] = (name, ip, port,0)
+			USER_MEMBER[hashid] = (name, ip, port, 0)
 			count += 1
 			index += 3
 		gLock.release()
@@ -768,14 +766,14 @@ def do_Send():
 	USER_MSGID += 1
 	USER_MEMBER[USER_HASHID] = (USER_MEMBER[USER_HASHID][0], USER_MEMBER[USER_HASHID][1], USER_MEMBER[USER_HASHID][2], USER_MEMBER[USER_HASHID][3]+1)
 	# T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
-	message = "T:"+USER_ROOM+":"+USER_HASHID+":"+USER_NAME+":"+USER_MSGID+":"+str(len(msg))+msg+"::\r\n"
+	message = "T:"+USER_ROOM+":"+str(USER_HASHID)+":"+USER_NAME+":"+str(USER_MSGID)+":"+str(len(msg))+msg+"::\r\n"
 	# send to all peers
 	# FORWARD LINK
 	if (len(USER_FSCKT) != 0):
 		# send message
-		USER_FSCKT[1].send(message.encode("ascii"))
+		USER_FSCKT[0].send(message.encode("ascii"))
 	# BACKWARD LINK
-	for hid, sckt in USER_BSCKT:
+	for hid, sckt in USER_BSCKT.items():
 		# send message
 		sckt.send(message.encode("ascii"))
 
