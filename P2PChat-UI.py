@@ -338,7 +338,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 						each_sckt.send(rmsg)
 			# forward link
 			for each_sckt in USER_FSCKT:
-				each_sckt.send(rmsg)
+				each_sckt[1].send(rmsg)
 			gLock.release()
 
 		# else a broken connection is detected, do the following
