@@ -311,13 +311,14 @@ def forward_thd():
 
 	fsckt = socket.socket()
 
-	while len(USER_FSCKT) == 0:
+	index = True
+	while index:
 		# build a forward link
-		if connect_member(fsckt):
+		index = connect_member(fsckt)
+		if index:
 			### Text flooding procedure ###
 			text_flooding(fckt, "Forward")
 		else:
-			
 			continue
 	return
 
