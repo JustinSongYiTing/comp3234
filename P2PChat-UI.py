@@ -119,7 +119,6 @@ def hash_list():
 	gList = []
 	gLock.acquire()
 	for hid, info in USER_MEMBER.items():
-		print("[hash_list] ", hid)
 		gList.append(hid)
 	gLock.release()
 	
@@ -266,7 +265,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			origin_msgID = rmsg_seg[4]
 			origin_msgLen = rmsg_seg[5]
 			origin_msgCon = ""
-			for i in range(6, len(rmsg_seg)-3):
+			for i in range(6, len(rmsg_seg)-2):
 				origin_msgCon += rmsg_seg[i]
 			
 			# check message validity
@@ -314,15 +313,13 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 
 			gLock.acquire()
-			if origin_msgID <= USER_MEMBER[int(origin_hashID)][3]:
-				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
+			if int(origin_msgID) <= int(USER_MEMBER[int(origin_hashID)][3]):
+				print("[client_thd] Message flooding error (duplicate message) at thread %s" % myName)
 				gLock.release()
 				continue
 			else:
 				USER_MEMBER[int(origin_hashID)] = (USER_MEMBER[int(origin_hashID)][0], USER_MEMBER[int(origin_hashID)][1], USER_MEMBER[int(origin_hashID)][2], origin_msgID)
 			gLock.release()
-
-
 
 			# display the message in the Message Window
 			MsgWin.insert(1.0, "[%s] %s" % (origin_name, origin_msgCon))
@@ -782,6 +779,9 @@ def do_Send():
 
 	# display message
 	MsgWin.insert(1.0, "\n["+USER_NAME+"] "+msg)
+	
+	userentry.delete(0, END)
+
 
 	return
 
