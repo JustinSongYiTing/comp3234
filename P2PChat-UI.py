@@ -29,13 +29,42 @@ def sdbm_hash(instr):
 
 
 #
+# KEEPALIVE Timer designed for continuously sending JOIN request
+#
+
+class TimerClass(threading.Thread):
+
+	def __init__(self):
+		threading.Thread.__init__(self)
+		self.event = threading.Event()
+
+	def run(self): 
+		while not self.event.is_set():
+			send_join()
+			self.event.wait(20)
+
+	def stop(self):
+		self.event.set()
+
+
+
+#
 # Global variables list
 #
 
+# server info
+SERVER_IP = 0
+SERVER_PORT = 0
+
+# user info
 USER_STATE = "START"
-
 USER_NAME = ""
-
+# user ip address
+USER_IP = ""
+# user port number
+USER_PORT = sys.argv[3]
+# user chatroom name
+USER_ROOM = ""
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
 
@@ -45,15 +74,6 @@ USER_FSCKT = []
 # a dictionary for BACKWARD LINK
 # (peer_hashID, peer_socket)
 USER_BSCKT = {}
-
-# user ip address
-USER_IP = ""
-
-# user port number
-USER_PORT = sys.argv[3]
-
-# user chatroom name
-USER_ROOM = ""
 
 # a dictionary for members in the same chatroom
 # (member_hashID, (name, ip, port, msgID))
@@ -77,9 +97,7 @@ gLock = threading.Lock()
 # a flag variable to control all threads
 all_thread_running = True
 
-# server info
-SERVER_IP = 0
-SERVER_PORT = 0
+
 
 
 #
@@ -89,37 +107,12 @@ SERVER_PORT = 0
 
 
 #
-# Timer designed for continuously sending JOIN request
-#
-
-class TimerClass(threading.Thread):
-
-	def __init__(self):
-		threading.Thread.__init__(self)
-		self.event = threading.Event()
-
-	def run(self): 
-		while not self.event.is_set():
-			send_join()
-			self.event.wait(20)
-
-	def stop(self):
-		self.event.set()
-
-
-#
 # Other function calls
 #
 
-def check_connection(ip, port):
-	try:
-		USER_SCKT.connect((SERVER_IP, SERVER_PORT))
-	except OSError as e:
-		print("[check_connection] OSError: ", e)
-		return False
-	return True
 
 def set_connection(ip, port):
+
 	return
 
 def hash_list():
@@ -128,13 +121,28 @@ def hash_list():
 		gList.append(hid)
 	return gList.sort()
 
-def p2p_handshake():
+def p2p_handshake(hashid, sckt):
+	sckt.settimeout(3.0)
 	# P:roomname:username:IP:Port:msgID::\r\n
 	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + USER_MSGID + "::\r\n"
 	# send message
-	# receive message 
-	# no error: get S:msgID::\r\n 	return True
-	# error: No response; just close the connection 	return False
+	sckt.send(msg.encode("ascii"))
+	# receive message
+	try:
+		rmsg = sckt.receive(500)
+	# error: No response; peer just close the connection
+	except socket.timeout:
+		return False
+	except socket.error as err:
+		print("[p2p_handshake] Receive Error: ", err)
+		return False
+	rmsg_lst = rmsg.decode("ascii").split(':')
+	# no error: get S:msgID::\r\n
+	if (rmsg_lst[0] != S)
+		return False
+	USER_MEMBER[hashid][3] = rmsg_lst[1]
+	return True
+	
 
 
 # A funtion for sending out JOIN request
@@ -159,12 +167,12 @@ def send_join():
 
 
 
-def connect_member():
-
+def connect_member(sckt):
+	# sorted list with member hashID 
 	lst = hash_list()
 	
 	if len(lst) == 1:
-		return
+		return False
 	
 	start = lst.index(USER_HASHID)+1
 	
@@ -172,98 +180,39 @@ def connect_member():
 		ip = USER_MEMBER[lst[start]][1]
 		port = USER_MEMBER[lst[start]][2]
 		# if there is a BACKWARD LINK between start and this program
-		if lst[start] in USER_MEMBER:
+		if lst[start] in USER_BSCKT:
 			start = (start+1) % lst.size()
+			continue
 		else:
 			# set_connection to lst[start]
-			if :
+			try:
+				sckt.connect(ip, int(port))
+			except socket.error as serr:
+				print("[connect_member] socket connect error: ", serr)
+				start = (start+1) % lst.size()
+				continue
 
-				if p2p_handshake():
-					break
-				else:
-					start = (start+1) % lst.size()
+			if p2p_handshake(lst[start], sckt):
+				USER_FSCKT[0] = (lst[start], sckt)
+				return True
 			else:
 				start = (start+1) % lst.size()
-	return
-
-#
-# End of Other function calls
-#
+				continue
+				
+	return False
 
 
+def text_flooding(sckt):
 
-#
-# Thread handlers
-#
+# set blocking duration to 1.0 second
+	sckt.settimeout(1.0)
 
-def forward_thd():
-	connect_member()
-
-	return
-
-def client_thd(csckt, caddr):
-
-	# get name of thread
-	myName = threading.currentThread().name
-	
-	# Handshaking procedure
-	# receive request message
-	try:
-		rmsg = csckt.recv(500)
-	except socket.error as err:
-		print("[client_thd] Request message error at thread %s: %s\n" % (myName, err))
-		return
-
-	rmsg_seg = rmsg.decode("ascii").split(':')
-
-	if (rmsg_seg[0] != 'P') || (rmsg_seg[1] != USER_ROOM):
-		CmdWin.insert(1.0, "\nSome error occured in the hanshaking procedure.")
-		return
-
-	# record peer info
-	peer_name = rmsg_seg[2]
-	peer_ip = rmsg_seg[3]
-	peer_port = rmsg_seg[4]
-	peer_msgID = rmsg_seg[5]
-	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
-
-	# check if the peer is in the chatroom
-	gLock.acquire()
-	result = USER_MEMBER.get(peer_hashID, "F")
-	gLock.release()
-	if result == "F":
-		# send a join request to room server for the latest member list
-		join_resp_decode = send_join()
-		if !(peer_name in join_resp_decode):
-			print("[client_thd] %s not in member list, terminating connection at thread %s\n" % (peer_name, myName))
-			csckt.close()
-			return
-
-	# send response message
-	gLock.acquire()
-	smsg = "S:" + USER_MSGID + "::\r\n"
-	csckt.send(smsg.encode("ascii"))
-	gLock.release()
-
-	CmdWin.insert(1.0, "\n%s has linked to me" % peer_name)
-
-	# update USER_STATE
-	USER_STATE = "CONNECTED"
-
-	# add the new client socket to USER_BSCKT
-	gLock.acquire()
-	USER_BSCKT[peer_hashID] = csckt
-	gLock.release()
-
-	# set blocking duration to 1.0 second
-	cskt.settimeout(1.0)
-
-	# Text flooding
+	# start lining
 	while all_thread_running:
 	
 		# wait for any message to arrive
 		try:
-			rmsg = cskt.recv(500)
+			rmsg = sckt.recv(500)
 		except socket.timeout:
 			continue
 		except socket.error as err:
@@ -305,7 +254,7 @@ def client_thd(csckt, caddr):
 			# backward links
 			if len(USER_BSCKT) > 1:
 				for hid, each_sckt in USER_BSCKT:
-					if each_sckt != csckt:
+					if each_sckt != sckt:
 						each_sckt.send(rmsg)
 			# forward link
 			for each_sckt in USER_FSCKT:
@@ -325,6 +274,96 @@ def client_thd(csckt, caddr):
 	# termination
 	print("[client_thd] Termination at thread %s\n" % myName)
 	return
+
+
+#
+# End of Other function calls
+#
+
+
+
+#
+# Thread handlers
+#
+
+def forward_thd():
+
+	fsckt = socket.socket()
+	
+	while
+		# build a forward link
+		if connect_member(fsckt):
+			### Text flooding procedure ###
+			text_flooding(fckt)
+		else:
+			
+			continue
+
+	return
+
+def client_thd(csckt, caddr):
+
+	# get name of thread
+	myName = threading.currentThread().name
+	
+	### Handshaking procedure ###
+	
+	# receive request message
+	try:
+		rmsg = csckt.recv(500)
+	except socket.error as err:
+		print("[client_thd] Request message error at thread %s: %s" % (myName, err))
+		csckt.close()
+		return
+
+	rmsg_seg = rmsg.decode("ascii").split(':')
+
+	# record peer info
+	peer_name = rmsg_seg[2]
+	peer_ip = rmsg_seg[3]
+	peer_port = rmsg_seg[4]
+	peer_msgID = rmsg_seg[5]
+	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
+
+	# check request message validity
+	if (rmsg_seg[0] != 'P') || (rmsg_seg[1] != USER_ROOM):
+		print("[client_thd] Handshaking error at thread %s" % myName)
+		csckt.close()
+		return
+
+	gLock.acquire()
+	result = USER_MEMBER.get(peer_hashID, "F")
+	gLock.release()
+	if result == "F":
+		# send a join request to room server for the latest member list
+		join_resp_decode = send_join()
+		if !(peer_name in join_resp_decode):
+			print("[client_thd] %s not in member list, terminating connection at thread %s" % (peer_name, myName))
+			csckt.close()
+			return
+
+	# send response message
+	gLock.acquire()
+	smsg = "S:" + USER_MSGID + "::\r\n"
+	csckt.send(smsg.encode("ascii"))
+	gLock.release()
+
+	# acknowledge successful backward linked connection
+	CmdWin.insert(1.0, "\n%s has linked to me" % peer_name)
+
+	# update USER_STATE
+	USER_STATE = "CONNECTED"
+
+	# add the new client socket to USER_BSCKT
+	gLock.acquire()
+	USER_BSCKT[peer_hashID] = csckt
+	gLock.release()
+
+	### Text flooding procedure ###
+	text_flooding(csckt)
+
+	return
+
 
 
 def listen_thd():
