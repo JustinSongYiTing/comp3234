@@ -11,20 +11,21 @@ import sys
 import socket
 import threading
 
-# Timer designed for continuously sending JOIN request
-class TimerClass(threading.Thread):
 
-	def __init__(self):
-		threading.Thread.__init__(self)
-		self.event = threading.Event()
+#
+# This is the hash function for generating a unique
+# Hash ID for each peer.
+# Source: http://www.cse.yorku.ca/~oz/hash.html
+#
+# Concatenate the peer's username, str(IP address), 
+# and str(Port) to form the input to this hash function
+#
+def sdbm_hash(instr):
+	hash = 0
+	for c in instr:
+		hash = int(ord(c)) + (hash << 6) + (hash << 16) - hash
+	return hash & 0xffffffffffffffff
 
-	def run(self): 
-		while not self.event.is_set():
-			send_join()
-			self.event.wait(20)
-
-	def stop(self):
-		self.event.set()
 
 
 #
@@ -55,13 +56,13 @@ USER_PORT = sys.argv[3]
 USER_ROOM = ""
 
 # a dictionary for members in the same chatroom
-# (member_hashID, (name, ip, port, msgid))
+# (member_hashID, (name, ip, port, msgID))
 USER_MEMBER = {}
 
 # user message ID (starting from 0)
 USER_MSGID = 0
 
-# user hash id
+# user hash ID
 USER_HASHID = 0
 
 # a timer object
@@ -85,20 +86,25 @@ SERVER_PORT = 0
 # End of Global variables
 #
 
-#
-# This is the hash function for generating a unique
-# Hash ID for each peer.
-# Source: http://www.cse.yorku.ca/~oz/hash.html
-#
-# Concatenate the peer's username, str(IP address), 
-# and str(Port) to form the input to this hash function
-#
-def sdbm_hash(instr):
-	hash = 0
-	for c in instr:
-		hash = int(ord(c)) + (hash << 6) + (hash << 16) - hash
-	return hash & 0xffffffffffffffff
 
+
+#
+# Timer designed for continuously sending JOIN request
+#
+
+class TimerClass(threading.Thread):
+
+	def __init__(self):
+		threading.Thread.__init__(self)
+		self.event = threading.Event()
+
+	def run(self): 
+		while not self.event.is_set():
+			send_join()
+			self.event.wait(20)
+
+	def stop(self):
+		self.event.set()
 
 
 #
@@ -184,6 +190,8 @@ def connect_member():
 # End of Other function calls
 #
 
+
+
 #
 # Thread handlers
 #
@@ -242,7 +250,7 @@ def client_thd(csckt, caddr):
 	# update USER_STATE
 	USER_STATE = "CONNECTED"
 
-	# add the new client socket to the USER_BSCKT
+	# add the new client socket to USER_BSCKT
 	gLock.acquire()
 	USER_BSCKT[peer_hashID] = csckt
 	gLock.release()
@@ -268,21 +276,30 @@ def client_thd(csckt, caddr):
 			
 			rmsg_seg = rmsg.decode("ascii").split(':')
 			
-			if rmsg_seg[0] != 'T':
+			# record origin info
+			origin_msgType = rmsg_seg[0]
+			origin_chatroom = rmsg_seg[1]
+			origin_hashID = rmsg_seg[2]
+			origin_name = rmsg_seg[3]
+			origin_msgID = rmsg_seg[4]
+			origin_msgLen = rmsg_seg[5]
+			origin_msgCon = rmsg_seg[6]
+			
+			# check message validity
+			if origin_msgType != 'T':
 				print("[client_thd] Message flooding error (not a TEXT message) at thread %s: %s\n" % myName)
 				continue
-			
-			if rmsg_seg[1] != USER_ROOM:
+			if origin_chatroom != USER_ROOM:
 				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
 				continue
+			if origin_msgID < USER_MEMBER[origin_hashID][3]
+				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
 
-			if
-			
-			
-			
-			
-			
-			CmdWin.insert(1.0,"\nRelay it to other peers.")
+			# display the message in the Message Window
+			MsgWin.insert(1.0, "[%s] %s" % (origin_name, origin_msgCon))
+
+			# relay the message to other chatroom members
+			CmdWin.insert(1.0,"\nRelay the message to other chatroom members.")
 
 			gLock.acquire()
 			# backward links
@@ -516,9 +533,6 @@ def do_Join():
 
 		# add the forward thread to the list of thread handlers
 		USER_THREAD.append(lthd)
-
-
-
 
 	return
 
