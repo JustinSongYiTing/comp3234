@@ -4,7 +4,7 @@
 # Student name and No.: Song Yi Ting     3035124829
 # Development platform: Mac OS
 # Python version: 3.6
-# Version: 10
+# Version: 47
 
 from tkinter import *
 import sys
@@ -245,8 +245,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
-	print("[text_flooding] start")
-
+	print("[text_flooding] Thread with the name "+ myName + " begins text flooding")
 
 	while all_thread_running:
 
@@ -256,7 +255,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 		except socket.timeout:
 			continue
 		except socket.error as err:
-			print("[client_thd] Message receiving error at thread %s: %s\n" % (myName, err))
+			print("[client_thd] Message receiving error at thread %s: %s" % (myName, err))
 			continue
 
 		# if a message arrived, do the following
@@ -277,10 +276,10 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 			# check message validity
 			if origin_msgType != 'T':
-				print("[text_flooding] Message flooding error (not a TEXT message) at thread %s: %s\n" % myName)
+				print("[text_flooding] Message flooding error (not a TEXT message) at thread %s: %s" % myName)
 				continue
 			if origin_chatroom != USER_ROOM:
-				print("[text_flooding] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
+				print("[text_flooding] Message flooding error (not the same chatroom) at thread %s: %s" % myName)
 				continue
 			
 			# check chatroom member list
@@ -321,7 +320,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 			gLock.acquire()
 			if int(origin_msgID) == int(USER_MEMBER[int(origin_hashID)][3]):
-				print("[text_flooding] Message flooding error (duplicate message) at thread %s" % myName)
+				print("[text_flooding] Duplicate message received at thread %s" % myName)
 				gLock.release()
 				continue
 			elif int(origin_msgID) > int(USER_MEMBER[int(origin_hashID)][3]):
@@ -349,7 +348,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 		# else a broken connection is detected, do the following
 		else:
-			print("[text_flooding] The peer connection is broken at thread %s\n" % myName)
+			print("[text_flooding] The peer connection is broken at thread %s" % myName)
 			
 			# check link type for further action
 			
@@ -365,12 +364,9 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				flag = True
 				sckt = socket.socket()
 
-				
 				while flag and all_thread_running:
 					flag = not connect_member(sckt)[0]
 					time.sleep(2.0)
-					print("[forward_thd] trying to rebuild forward link")
-				
 				
 				# continue with the newly establiched forwrd link
 				continue
@@ -403,12 +399,14 @@ def forward_thd():
 	
 	global all_thread_running
 	
-	fsckt = socket.socket()
+	### Handshaking procedure ###
 
-	flag = True
+	# create a socket object for a forward link
+	fsckt = socket.socket()
 	
+	# set up a forward link
+	flag = True
 	while flag and all_thread_running:
-		# build a forward link
 		(result, peer_hashID) = connect_member(fsckt)
 		flag = not result
 		if flag:
@@ -416,8 +414,8 @@ def forward_thd():
 
 	### Text flooding procedure ###
 	text_flooding(fsckt, "Forward", "forwardThread", peer_hashID)
-	print("[forward_thd] return from text_flooding")
 
+	print("[forward_thd] Back from text_flooding")
 	return
 
 def client_thd(csckt, caddr):
@@ -509,6 +507,9 @@ def client_thd(csckt, caddr):
 
 	### Text flooding procedure ###
 	text_flooding(csckt, "Backward", myName, peer_hashID)
+	
+	print("[client_thd] Back from text_flooding")
+
 
 	return
 
@@ -768,12 +769,12 @@ def do_Send():
 		gLock.release()
 		return
 	if USER_STATE == "JOINED":
-		CmdWin.insert(1.0, "\nYou have not yet connect to a chatroom network. Please try again later.")
+		CmdWin.insert(1.0, "\nYou have not yet connected to a chatroom network. Please try again later.")
 		userentry.delete(0, END)
 		gLock.release()
 		return
 	if USER_STATE != "CONNECTED":
-		CmdWin.insert(1.0, "\nYou have not yet join a chatroom.")
+		CmdWin.insert(1.0, "\nYou have not yet joined a chatroom.")
 		userentry.delete(0, END)
 		gLock.release()
 		return
@@ -826,9 +827,9 @@ def do_Quit():
 	# wait for all threads to terminate
 	gLock.acquire()
 	for each_thread in USER_THREAD:
-		print("[do_Quit] waiting for", each_thread)
+		print("[do_Quit] Waiting for", each_thread)
 		each_thread.join()
-		print("Okay")
+		print("[do_Quit] Okay")
 	gLock.release()
 
 
@@ -839,7 +840,7 @@ def do_Quit():
 
 	KEEPALIVE.stop()
 	
-	print("Bye!")
+	print("[do_Quit] Bye!")
 	sys.exit(0)
 
 #
