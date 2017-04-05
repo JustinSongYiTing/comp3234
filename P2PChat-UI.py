@@ -126,7 +126,7 @@ def hash_list():
 
 def p2p_handshake(hashid, sckt):
 	# List out global variables
-	global USER_ROOM, USER_NAME, USER_IP, USER_PORT,  USER_MSGID, USER_MEMBER
+	global USER_ROOM, USER_NAME, USER_IP, USER_PORT, USER_MSGID, USER_MEMBER
 
 	sckt.settimeout(3.0)
 	# P:roomname:username:IP:Port:msgID::\r\n
