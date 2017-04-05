@@ -286,7 +286,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				# terminate if origin_name not in latest member list
 				if not (origin_name in join_resp_decode):
 					print("[text_flooding] %s not in member list, terminating connection at thread %s" % (origin_name, myName))
-					csckt.close()
+					sckt.close()
 					return
 				
 				# update member information origin_name in latest member list
@@ -340,13 +340,12 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 		# else a broken connection is detected, do the following
 		else:
-			print("[client_thd] The peer connection is broken at thread %s\n" % myName)
+			print("[text_flooding] The peer connection is broken at thread %s\n" % myName)
 			
 			# check link type for further action
 			
 			if linkType == "Forward":
 				# remove the forward link from list
-				sckt.close()
 				gLock.acquire()
 				del USER_FSCKT[0]
 				gLock.release()
@@ -363,7 +362,6 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 		
 			else:
 				# remove the backward link from list
-				sckt.close()
 				gLock.acquire()
 				del USER_BSCKT[peer_hashID]
 				gLock.release()
@@ -566,7 +564,7 @@ def do_User():
 	# List out global variables
 	global USER_STATE, USER_NAME, USER_HASHID
 
-	CmdWin.insert(1.0, "\nPress List")
+	CmdWin.insert(1.0, "\nPress User")
 	
 	# Check state. Only accept request before the user join any chatgroup
 	if USER_STATE != "START" and USER_STATE != "NAMED" :
@@ -800,14 +798,17 @@ def do_Quit():
 	all_thread_running = False
 	
 	# close all sockets
+	print("[do_Quit] closing all sockets")
 	gLock.acquire()
 	for each_sckt in USER_FSCKT:
 		each_sckt[1].close()
 	for each_hashID, each_sckt in USER_BSCKT.items():
 		each_sckt.close()
+	gLock.release()
 
 	# wait for all threads to terminate
-	
+	print("[do_Quit] waiting for threads")
+	gLock.acquire()
 	for each_thread in USER_THREAD:
 		each_thread.join()
 	gLock.release()
