@@ -209,6 +209,7 @@ def connect_member(sckt):
 			if p2p_handshake(lst[start], sckt):
 				USER_FSCKT[0] = (lst[start], sckt)
 				gLock.release()
+				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
 				return True
 			else:
 				start = (start+1) % lst.size()
@@ -422,7 +423,7 @@ def listen_thd():
 	listen_sckt.settimeout(1.0)
 
 	try:
-		listen_sckt.bind((USER_IP, USER_PORT))
+		listen_sckt.bind((USER_IP, int(USER_PORT)))
 	except socket.error as err:
 		print("[listen_thd] Socket binding error: ", err)
 		sys.exit(1)
