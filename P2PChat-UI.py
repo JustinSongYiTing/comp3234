@@ -800,7 +800,7 @@ def do_Quit():
 	# close all sockets
 	gLock.acquire()
 	for each_sckt in USER_FSCKT:
-		each_sckt.close()
+		each_sckt[1].close()
 	for each_hashID, each_sckt in USER_BSCKT:
 		each_sckt.close()
 
