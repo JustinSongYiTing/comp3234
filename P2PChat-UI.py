@@ -224,7 +224,7 @@ def connect_member(sckt):
 
 def text_flooding(sckt, linkType):
 
-	global all_thread_running
+	global all_thread_running, USER_MEMBER
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
@@ -400,6 +400,7 @@ def client_thd(csckt, caddr):
 	# update USER_STATE
 	gLock.acquire()
 	USER_STATE = "CONNECTED"
+	print("At state %s: " % USER_STATE)
 	gLock.release()
 	
 	# add the new client socket to USER_BSCKT
@@ -498,6 +499,7 @@ def do_User():
 	# Set USER_STATE to NAMED
 	gLock.acquire()
 	USER_STATE = "NAMED"
+	print("At state %s: " % USER_STATE)
 	gLock.release()
 
 	return
@@ -594,6 +596,7 @@ def do_Join():
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + USER_ROOM)
 		gLock.acquire()
 		USER_STATE = "JOINED"
+		print("At state %s: " % USER_STATE)
 		gLock.release()
 		
 		# concatenate a string for all of the room members in the room
@@ -711,14 +714,19 @@ def do_Quit():
 	
 
 	# wait for all threads to terminate
+	gLock.acquire()
 	for each_thread in USER_THREAD:
 		each_thread.join()
+	gLock.release()
 
 
 	print("All threads terminated. Bye!")
-	
+
+	gLock.acquire()
 	USER_STATE = "TERMINATED"
+	print("At state %s: " % USER_STATE)
 	gLock.release()
+
 	KEEPALIVE.stop()
 	sys.exit(0)
 
