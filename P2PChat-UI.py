@@ -647,6 +647,7 @@ def do_Send():
 	msg = userentry.get()
 	# check if user input is empty
 	if msg == "":
+		CmdWin.insert(1.0, "\nEmpty message")
 		return
 	# check if the program has joined or connected to a chatroom program
 	gLock.acquire()
