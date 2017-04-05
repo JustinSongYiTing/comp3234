@@ -266,15 +266,15 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			origin_msgID = rmsg_seg[4]
 			origin_msgLen = rmsg_seg[5]
 			origin_msgCon = ""
-			for i in range(6, len(rmsg_seg)-3):
+			for i in range(6, len(rmsg_seg)-2):
 				origin_msgCon += rmsg_seg[i]
-			
+			print("[text_flooding] msg", rmsg)
 			# check message validity
 			if origin_msgType != 'T':
-				print("[client_thd] Message flooding error (not a TEXT message) at thread %s: %s\n" % myName)
+				print("[text_flooding] Message flooding error (not a TEXT message) at thread %s: %s\n" % myName)
 				continue
 			if origin_chatroom != USER_ROOM:
-				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
+				print("[text_flooding] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
 				continue
 			
 			# check chatroom member list
@@ -287,7 +287,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				
 				# terminate if origin_name not in latest member list
 				if not (origin_name in join_resp_decode):
-					print("[client_thd] %s not in member list, terminating connection at thread %s" % (origin_name, myName))
+					print("[text_flooding] %s not in member list, terminating connection at thread %s" % (origin_name, myName))
 					csckt.close()
 					return
 				
@@ -314,8 +314,8 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 
 			gLock.acquire()
-			if origin_msgID <= USER_MEMBER[int(origin_hashID)][3]:
-				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
+			if int(origin_msgID) <= int(USER_MEMBER[int(origin_hashID)][3]):
+				print("[client_thd] Message flooding error (duplicate message) at thread %s" % myName)
 				gLock.release()
 				continue
 			else:
@@ -325,7 +325,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 
 			# display the message in the Message Window
-			MsgWin.insert(1.0, "[%s] %s" % (origin_name, origin_msgCon))
+			MsgWin.insert(1.0, "\n[%s] %s" % (origin_name, origin_msgCon))
 
 			# relay the message to other chatroom members
 			CmdWin.insert(1.0,"\nRelay the message to other chatroom members.")
@@ -705,7 +705,7 @@ def do_Join():
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
 			print("[do_Join] get hashid: "+str(hashid))
-			USER_MEMBER[hashid] = (name, ip, port,0)
+			USER_MEMBER[hashid] = (name, ip, port, 0)
 			count += 1
 			index += 3
 		gLock.release()
@@ -767,7 +767,7 @@ def do_Send():
 	USER_MSGID += 1
 	USER_MEMBER[USER_HASHID] = (USER_MEMBER[USER_HASHID][0], USER_MEMBER[USER_HASHID][1], USER_MEMBER[USER_HASHID][2], USER_MEMBER[USER_HASHID][3]+1)
 	# T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
-	message = "T:"+USER_ROOM+":"+str(USER_HASHID)+":"+USER_NAME+":"+str(USER_MSGID)+":"+str(len(msg))+msg+"::\r\n"
+	message = "T:"+USER_ROOM+":"+str(USER_HASHID)+":"+USER_NAME+":"+str(USER_MSGID)+":"+str(len(msg))+":"+msg+"::\r\n"
 	# send to all peers
 	# FORWARD LINK
 	if (len(USER_FSCKT) != 0):
