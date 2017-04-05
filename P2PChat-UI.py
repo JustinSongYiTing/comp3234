@@ -119,6 +119,7 @@ def hash_list():
 	gList = []
 	gLock.acquire()
 	for hid, info in USER_MEMBER.items():
+		print("[hash_list] ", hid)
 		gList.append(hid)
 	gLock.release()
 	
@@ -314,12 +315,12 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 
 			gLock.acquire()
-			if origin_msgID <= USER_MEMBER[origin_hashID][3]:
+			if origin_msgID <= USER_MEMBER[int(origin_hashID)][3]:
 				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
 				gLock.release()
 				continue
 			else:
-				USER_MEMBER[origin_hashID][3] = origin_msgID
+				USER_MEMBER[int(origin_hashID)] = (USER_MEMBER[int(origin_hashID)][0], USER_MEMBER[int(origin_hashID)][1], USER_MEMBER[int(origin_hashID)][2], origin_msgID)
 			gLock.release()
 
 
