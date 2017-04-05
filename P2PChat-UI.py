@@ -781,7 +781,7 @@ def do_Send():
 	gLock.release()
 
 	# display message
-	CmdWin.insert(1.0, "\n"+USER_NAME+": "+msg)
+	MsgWin.insert(1.0, "\n["+USER_NAME+"] "+msg)
 
 	return
 
