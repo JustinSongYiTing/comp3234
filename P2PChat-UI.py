@@ -263,9 +263,9 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			origin_name = rmsg_seg[3]
 			origin_msgID = rmsg_seg[4]
 			origin_msgLen = rmsg_seg[5]
-			origin_msgCon = ""
-			for i in range(6, len(rmsg_seg)-2):
-				origin_msgCon += rmsg_seg[i]
+			origin_msgCon = rmsg_seg[6]
+			for i in range(7, len(rmsg_seg)-2):
+				origin_msgCon += (":"+rmsg_seg[i])
 			print("[text_flooding] msg", rmsg)
 			# check message validity
 			if origin_msgType != 'T':
@@ -354,6 +354,11 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				index = True
 				sckt = socket.socket()
 				while index:
+					gLock.acquire()
+					if USER_STATE == "TERMINATED":
+						gLock.release()
+						return
+					gLock.release()
 					index = not connect_member(sckt)
 					time.sleep(2.0)
 				
@@ -389,12 +394,18 @@ def forward_thd():
 	fsckt = socket.socket()
 
 	index = True
+	
 	while index:
 		# build a forward link
+		gLock.acquire()
+		if USER_STATE == "TERMINATED":
+			gLock.release()
+			return
+		gLock.release()
 		index = not connect_member(fsckt)
 		if index:
 			time.sleep(2.0)
-		
+	
 	
 	gLock.acquire()
 	print("[forward_thd] state is connected")
@@ -796,6 +807,10 @@ def do_Quit():
 	
 	# ask all threads to terminate
 	all_thread_running = False
+	gLock.acquire()
+	USER_STATE = "TERMINATED"
+	print("At state %s" % USER_STATE)
+	gLock.release()
 	
 	# close all sockets
 	print("[do_Quit] closing all sockets")
@@ -814,10 +829,7 @@ def do_Quit():
 	gLock.release()
 
 
-	gLock.acquire()
-	USER_STATE = "TERMINATED"
-	print("At state %s" % USER_STATE)
-	gLock.release()
+	
 
 	print("All threads terminated. Bye!")
 
