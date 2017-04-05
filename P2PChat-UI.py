@@ -292,9 +292,9 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				join_resp_decode = send_join()
 				
 				# terminate if origin_name not in latest member list
-				if not (origin_name in join_resp_decode):
+				if (not (origin_name in join_resp_decode)) and (origin_name != USER_NAME):
 					print("[text_flooding] %s not in member list, terminating connection at thread %s" % (origin_name, myName))
-					sckt.close()
+					#sckt.close()
 					return
 				
 				# update member information origin_name in latest member list
@@ -332,13 +332,14 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			MsgWin.insert(1.0, "\n[%s] %s" % (origin_name, origin_msgCon))
 
 			# relay the message to other chatroom members
-			CmdWin.insert(1.0,"\nRelay the message to other chatroom members.")
-
 			gLock.acquire()
+			if (len(USER_BSCKT) + len(USER_FSCKT)) > 0:
+				CmdWin.insert(1.0,"\nRelay the message to other chatroom members.")
+
 			# backward links
 			if len(USER_BSCKT) > 0:
 				for each_hid, each_sckt in USER_BSCKT.items():
-					if each_hid != origin_hashID:
+					if each_hid != origin_hashID and each_sckt != sckt:
 						each_sckt.send(rmsg)
 			# forward link
 			for each_sckt in USER_FSCKT:
@@ -356,15 +357,20 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				# remove the forward link from list
 				gLock.acquire()
 				del USER_FSCKT[0]
-				del USER_MEMBER[peer_hashID]
+				if USER_MEMBER.get(peer_hashID, "F") != "F":
+					del USER_MEMBER[peer_hashID]
 				gLock.release()
 				
 				# search for a new forward link
-				index = True
+				flag = True
 				sckt = socket.socket()
-				while index:
-					index = not connect_member(sckt)[0]
+
+				
+				while flag and all_thread_running:
+					flag = not connect_member(sckt)[0]
 					time.sleep(2.0)
+					print("[forward_thd] trying to rebuild forward link")
+				
 				
 				# continue with the newly establiched forwrd link
 				continue
@@ -373,7 +379,8 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				# remove the backward link from list
 				gLock.acquire()
 				del USER_BSCKT[peer_hashID]
-				del USER_MEMBER[peer_hashID]
+				if USER_MEMBER.get(peer_hashID, "F") != "F":
+					del USER_MEMBER[peer_hashID]
 				gLock.release()
 				break
 
@@ -394,20 +401,23 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 def forward_thd():
 	
+	global all_thread_running
+	
 	fsckt = socket.socket()
 
 	flag = True
-	while flag:
+	
+	while flag and all_thread_running:
 		# build a forward link
-		flag = not connect_member(fsckt)[0]
+		(result, peer_hashID) = connect_member(fsckt)
+		flag = not result
 		if flag:
 			time.sleep(2.0)
 
-	peer_hashID = connect_member(fsckt)[1]
-	
 	### Text flooding procedure ###
 	text_flooding(fsckt, "Forward", "forwardThread", peer_hashID)
-	
+	print("[forward_thd] return from text_flooding")
+
 	return
 
 def client_thd(csckt, caddr):
@@ -425,7 +435,7 @@ def client_thd(csckt, caddr):
 		rmsg = csckt.recv(500)
 	except socket.error as err:
 		print("[client_thd] Request message error at thread %s: %s" % (myName, err))
-		csckt.close()
+		#csckt.close()
 		return
 
 	rmsg_seg = rmsg.decode("ascii").split(':')
@@ -433,11 +443,11 @@ def client_thd(csckt, caddr):
 	# check request message validity
 	if (rmsg_seg[0] != 'P') or (rmsg_seg[1] != USER_ROOM):
 		print("[client_thd] Handshaking error at thread %s" % myName)
-		csckt.close()
+		#csckt.close()
 		return
 
 	if len(rmsg_seg) < 6:
-		csckt.close()
+		#csckt.close()
 		return
 
 	# record peer info
@@ -457,7 +467,7 @@ def client_thd(csckt, caddr):
 		join_resp_decode = send_join()
 		if not (peer_name in join_resp_decode):
 			print("[client_thd] %s not in member list, terminating connection at thread %s" % (peer_name, myName))
-			csckt.close()
+			#csckt.close()
 			return
 		count = 1
 		index = 2
@@ -483,7 +493,7 @@ def client_thd(csckt, caddr):
 	gLock.release()
 
 	# acknowledge successful backward linked connection
-	CmdWin.insert(1.0, "\n%s has linked to me" % peer_name)
+	CmdWin.insert(1.0, "\n"+peer_name+" has linked to me")
 
 	# update USER_STATE
 	gLock.acquire()
@@ -525,7 +535,7 @@ def listen_thd():
 
 	# set socket listening queue
 	listen_sckt.listen(5)
-
+	
 	while all_thread_running:
 		# wait for incoming connection request
 		# however, the socket may unblock after 1.0 second
@@ -537,7 +547,7 @@ def listen_thd():
 			continue
 
 		# the system just accepted a new client connection
-		print("[listen_thd] A new client has arrived. It is at: \n", caddr)
+		print("[listen_thd] A new client has arrived. It is at: ", caddr)
 
 		# generate a name to this client
 		cname = caddr[0]+'_'+str(caddr[1])
@@ -547,9 +557,10 @@ def listen_thd():
 		cthd.start()
 
 		# add this new thread to USER_THREAD list
-		gLock.acquire()
-		USER_THREAD.append(cthd)
-		gLock.release()
+		if all_thread_running:
+			gLock.acquire()
+			USER_THREAD.append(cthd)
+			gLock.release()
 
 	print("[listen_thd] Termination")
 	return
@@ -582,7 +593,7 @@ def do_User():
 
 	# Assign entry to USER_NAME
 	USER_NAME = userentry.get()
-	outstr = "\n[User] username: "+USER_NAME
+	outstr = "\nUsername: "+USER_NAME
 	CmdWin.insert(1.0, outstr)
 	userentry.delete(0, END)
 
@@ -636,7 +647,7 @@ def do_Join():
 	# List out global variables
 	global USER_STATE, USER_ROOM, KEEPALIVE, USER_THREAD
 	
-	CmdWin.insert(1.0, "\nPress JOIN")
+	CmdWin.insert(1.0, "\nPress Join")
 	
 	gLock.acquire()
 	
@@ -705,7 +716,6 @@ def do_Join():
 			room_member += ("\t" + port)
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
-			print("[do_Join] get hashid: "+str(hashid))
 			USER_MEMBER[hashid] = (name, ip, port, 0)
 			count += 1
 			index += 3
@@ -789,23 +799,23 @@ def do_Send():
 	
 	userentry.delete(0, END)
 
-
 	return
 
 
+
 def do_Quit():
+
 	# List out global variables
 	global USER_STATE, KEEPALIVE, USER_FSCKT, USER_BSCKT, USER_THREAD, all_thread_running
 
 	CmdWin.insert(1.0, "\nPress Quit")
 	
-	print("Shutdown P2PChat")
+	print("[do_Quit] Shutdown P2PChat")
 	
 	# ask all threads to terminate
 	all_thread_running = False
 	
 	# close all sockets
-	print("[do_Quit] closing all sockets")
 	gLock.acquire()
 	for each_sckt in USER_FSCKT:
 		each_sckt[1].close()
@@ -814,23 +824,22 @@ def do_Quit():
 	gLock.release()
 
 	# wait for all threads to terminate
-	print("[do_Quit] waiting for threads")
 	gLock.acquire()
-	for each_thread in reversed(USER_THREAD):
-		print(each_thread)
+	for each_thread in USER_THREAD:
+		print("[do_Quit] waiting for", each_thread)
 		each_thread.join()
-		print("ok")
+		print("Okay")
 	gLock.release()
 
 
 	gLock.acquire()
 	USER_STATE = "TERMINATED"
-	print("[do_QUIT] At state %s" % USER_STATE)
+	print("[do_Quit] At state %s" % USER_STATE)
 	gLock.release()
 
-	print("All threads terminated. Bye!")
-
 	KEEPALIVE.stop()
+	
+	print("Bye!")
 	sys.exit(0)
 
 #
