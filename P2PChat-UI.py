@@ -139,7 +139,7 @@ def p2p_handshake(hashid, sckt):
 	rmsg_lst = rmsg.decode("ascii").split(':')
 	
 	# no error: get S:msgID::\r\n
-	if (rmsg_lst[0] != S)
+	if (rmsg_lst[0] != "S"):
 		return False
 	
 	gLock.acquire()
@@ -156,7 +156,7 @@ def send_join():
 	global USER_ROOM, USER_NAME, USER_IP, USER_PORT, USER_SCKT
 
 	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
-	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP.getsockname()[0] + ":" + USER_PORT+"::\r\n"
+	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT+"::\r\n"
 	# send a JOIN request to roomserver
 	USER_SCKT.send(join_requ.encode("ascii"))
 
@@ -257,7 +257,7 @@ def text_flooding(sckt, linkType):
 				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
 				continue
 			gLock.acquire()
-			if origin_msgID < USER_MEMBER[origin_hashID][3]
+			if origin_msgID < USER_MEMBER[origin_hashID][3]:
 				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
 			gLock.release()
 			
@@ -659,7 +659,7 @@ def do_Send():
 	message = "T:"+USER_ROOM+":"+USER_HASHID+":"+USER_NAME+":"+USER_MSGID+":"+str(len(msg))+msg+"::\r\n"
 	# send to all peers
 	# FORWARD LINK
-	if (len(USER_FSCKT) != 0)
+	if (len(USER_FSCKT) != 0):
 		# send message
 		USER_FSCKT[1].send(message.encode("ascii"))
 	# BACKWARD LINK
