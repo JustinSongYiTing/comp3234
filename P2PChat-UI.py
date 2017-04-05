@@ -364,18 +364,19 @@ def client_thd(csckt, caddr):
 
 	rmsg_seg = rmsg.decode("ascii").split(':')
 
-	# record peer info
-	peer_name = rmsg_seg[2]
-	peer_ip = rmsg_seg[3]
-	peer_port = rmsg_seg[4]
-	peer_msgID = rmsg_seg[5]
-	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
-
 	# check request message validity
 	if (rmsg_seg[0] != 'P') or (rmsg_seg[1] != USER_ROOM):
 		print("[client_thd] Handshaking error at thread %s" % myName)
 		csckt.close()
 		return
+
+	if len(rmsg_seg) >= 6:
+		# record peer info
+		peer_name = rmsg_seg[2]
+		peer_ip = rmsg_seg[3]
+		peer_port = rmsg_seg[4]
+		peer_msgID = rmsg_seg[5]
+		peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
 
 	gLock.acquire()
 	result = USER_MEMBER.get(peer_hashID, "F")
@@ -400,7 +401,7 @@ def client_thd(csckt, caddr):
 	# update USER_STATE
 	gLock.acquire()
 	USER_STATE = "CONNECTED"
-	print("At state %s: " % USER_STATE)
+	print("At state %s " % USER_STATE)
 	gLock.release()
 	
 	# add the new client socket to USER_BSCKT
@@ -500,7 +501,7 @@ def do_User():
 	# Set USER_STATE to NAMED
 	gLock.acquire()
 	USER_STATE = "NAMED"
-	print("At state %s: " % USER_STATE)
+	print("At state %s " % USER_STATE)
 	gLock.release()
 
 	return
@@ -597,7 +598,7 @@ def do_Join():
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + USER_ROOM)
 		gLock.acquire()
 		USER_STATE = "JOINED"
-		print("At state %s: " % USER_STATE)
+		print("At state %s " % USER_STATE)
 		gLock.release()
 		
 		# concatenate a string for all of the room members in the room
@@ -713,7 +714,6 @@ def do_Quit():
 		each_sckt.close()
 	for each_hashID, each_sckt in USER_BSCKT:
 		each_sckt.close()
-	
 
 	# wait for all threads to terminate
 	
@@ -722,12 +722,12 @@ def do_Quit():
 	gLock.release()
 
 
-	print("All threads terminated. Bye!")
-
 	gLock.acquire()
 	USER_STATE = "TERMINATED"
-	print("At state %s: " % USER_STATE)
+	print("At state %s" % USER_STATE)
 	gLock.release()
+
+	print("All threads terminated. Bye!")
 
 	KEEPALIVE.stop()
 	sys.exit(0)
