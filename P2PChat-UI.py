@@ -206,9 +206,9 @@ def connect_member(sckt):
 	return False
 
 
-def text_flooding(sckt):
+def text_flooding(sckt, linkType):
 
-# set blocking duration to 1.0 second
+	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
 
 	# start lining
@@ -269,11 +269,30 @@ def text_flooding(sckt):
 		else:
 			print("[client_thd] The peer connection is broken at thread %s\n" % myName)
 			
-			# remove the backward link
-			gLock.acquire()
-			del USER_BSCKT[peer_hashID]
-			gLock.release()
-			break
+			# check link type for further action
+			
+			if linkType == "Forward":
+				# remove the forward link from list
+				gLock.acquire()
+				del USER_FSCKT[0]
+				gLock.release()
+				
+				# search for a new forward link
+				index = True
+				while index:
+					index = not connect_member(sckt)
+				
+				# continue with the newly establiched forwrd link
+				continue
+		
+			else:
+				# remove the backward link from list
+				sckt.close()
+				gLock.acquire()
+				del USER_BSCKT[peer_hashID]
+				gLock.release()
+				
+				break
 
 	# termination
 	print("[client_thd] Termination at thread %s\n" % myName)
@@ -298,7 +317,7 @@ def forward_thd():
 		# build a forward link
 		if connect_member(fsckt):
 			### Text flooding procedure ###
-			text_flooding(fckt)
+			text_flooding(fckt, "Forward")
 		else:
 			
 			continue
@@ -368,7 +387,7 @@ def client_thd(csckt, caddr):
 	gLock.release()
 
 	### Text flooding procedure ###
-	text_flooding(csckt)
+	text_flooding(csckt, "Backward")
 
 	return
 
@@ -625,6 +644,26 @@ def do_Quit():
 	global USER_STATE, KEEPALIVE
 
 	CmdWin.insert(1.0, "\nPress Quit")
+	
+	print("Shutdown P2PChat")
+	
+	# ask all threads to terminate
+	all_thread_running = False
+	
+	# close all sockets
+	gLock.acquire()
+	for each_sckt in USER_FSCKT:
+		each_sckt.close()
+	for each_hashID, each_sckt in USER_BSCKT:
+		each_sckt.close()
+	gLock.release()
+
+	# wait for all threads to terminate
+	for each_thread in USER_THREAD:
+		each_thread.join()
+
+	print("All threads terminated. Bye!")
+	
 	USER_STATE = "TERMINATED"
 	KEEPALIVE.stop()
 	sys.exit(0)
