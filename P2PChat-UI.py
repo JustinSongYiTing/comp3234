@@ -284,11 +284,11 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
 				continue
 			gLock.acquire()
-			print("a11")
+			
 			if origin_msgID < USER_MEMBER[origin_hashID][3]:
 				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
 			gLock.release()
-			print("r11")
+			
 			
 			# display the message in the Message Window
 			MsgWin.insert(1.0, "[%s] %s" % (origin_name, origin_msgCon))
@@ -360,15 +360,14 @@ def forward_thd():
 	index = True
 	while index:
 		# build a forward link
-		print("[forward_thd] connecting member")
 		index = not connect_member(fsckt)
 		if index:
-			print("[forward_thd] not successful")
 			time.sleep(2.0)
-		else:
-			print("[forward_thd] successful")
+		
 	
-	print("[forward_thd] into text_flooding")
+	gLock.acquire()
+	USER_STATE = "CONNECTED"
+	gLock.release()
 	dummy = -1
 	text_flooding(fsckt, "Forward", "forwardThread", dummy)
 	print("[forward_thd] after text_flooding")
@@ -413,10 +412,8 @@ def client_thd(csckt, caddr):
 		
 
 	gLock.acquire()
-	print("a4")
 	result = USER_MEMBER.get(peer_hashID, "F")
 	gLock.release()
-	print("r4")
 	if result == "F":
 		# send a join request to room server for the latest member list
 		join_resp_decode = send_join()
@@ -424,6 +421,22 @@ def client_thd(csckt, caddr):
 			print("[client_thd] %s not in member list, terminating connection at thread %s" % (peer_name, myName))
 			csckt.close()
 			return
+		count = 1
+		index = 2
+		# format: userA  A_IP  A_port
+		while index < len(join_resp_decode)-2:
+			name = join_resp_decode[index]
+			ip = join_resp_decode[index+1]
+			port = join_resp_decode[index+2]
+			# fill in member information
+			hashid = sdbm_hash(name+ip+port)
+			gLock.acquire()
+			result = USER_MEMBER.get(hashid, "F")
+			if result == "F":
+				USER_MEMBER[hashid] = (name, ip, port,0)
+			gLock.release()
+			count += 1
+			index += 3
 
 	# send response message
 	print("a5")
