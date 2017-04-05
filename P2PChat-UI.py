@@ -154,8 +154,7 @@ def p2p_handshake(hashid, sckt):
 def send_join():
 	# List out global variables
 	global USER_ROOM, USER_NAME, USER_IP, USER_PORT, USER_SCKT
-	print("send_join USER_IP"+USER_IP)
-	print("send_join USER_IP type"+str(type(USER_IP)))
+
 	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
 	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT+"::\r\n"
 	print(join_requ)
@@ -423,7 +422,7 @@ def listen_thd():
 	listen_sckt.settimeout(1.0)
 
 	try:
-		sockfd.bind((USER_IP, USER_PORT))
+		listen_sckt.bind((USER_IP, USER_PORT))
 	except socket.error as err:
 		print("[listen_thd] Socket binding error: ", err)
 		sys.exit(1)
@@ -599,9 +598,9 @@ def do_Join():
 			name = join_resp_decode[index]
 			ip = join_resp_decode[index+1]
 			port = join_resp_decode[index+2]
-			room_member += ("\n\t" + str(count) + ": " + group_username)
-			room_member += ("\t" + group_userip)
-			room_member += ("\t" + group_userport)
+			room_member += ("\n\t" + str(count) + ": " + name)
+			room_member += ("\t" + ip)
+			room_member += ("\t" + port)
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
 			USER_MEMBER[hashid] = (name, ip, port,0)
@@ -760,7 +759,7 @@ bottscroll.config(command=CmdWin.yview)
 
 def main():
 	global USER_SCKT, USER_IP, USER_HASHID, USER_PORT
-	
+
 	if len(sys.argv) != 4:
 		print("P2PChat.py <server address> <server port no.> <my port no.>")
 		sys.exit(2)
@@ -773,7 +772,6 @@ def main():
 	try:
 		USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
 		USER_IP = USER_SCKT.getsockname()[0]
-		print("USER_IP: ", USER_IP)
 		USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
 	except socket.error as cErr:
 		CmdWin.insert(1.0, "\nFail to reach the server")
