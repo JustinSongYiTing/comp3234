@@ -42,7 +42,7 @@ USER_SCKT = socket.socket()
 USER_FSCKT = []
 
 # a dictionary for BACKWARD LINK
-# (hashID, socket)
+# (peer_hashID, peer_socket)
 USER_BSCKT = {}
 
 # user ip address
@@ -55,7 +55,7 @@ USER_PORT = sys.argv[3]
 USER_ROOM = ""
 
 # a dictionary for members in the same chatroom
-# (hashID, (name, ip, port, msgid))
+# (member_hashID, (name, ip, port, msgid))
 USER_MEMBER = {}
 
 # user message ID (starting from 0)
@@ -206,28 +206,28 @@ def client_thd(csckt, caddr):
 		print("[client_thd] Request message error at thread %s: %s\n" % (myName, err))
 		return
 
-	rmsg = rmsg.decode("ascii").split(':')
+	rmsg_seg = rmsg.decode("ascii").split(':')
 
-	if (rmsg[0] != 'P') || (rmsg[1] != USER_ROOM):
+	if (rmsg_seg[0] != 'P') || (rmsg_seg[1] != USER_ROOM):
 		CmdWin.insert(1.0, "\nSome error occured in the hanshaking procedure.")
 		return
 
 	# record peer info
-	peer_name = rmsg[2]
-	peer_ip = rmsg[3]
-	peer_port = rmsg[4]
-	peer_msgID = rmsg[5]
-	hashID = sdbm_hash(peer_name+peer_ip+peer_port)
+	peer_name = rmsg_seg[2]
+	peer_ip = rmsg_seg[3]
+	peer_port = rmsg_seg[4]
+	peer_msgID = rmsg_seg[5]
+	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
 
 	# check if the peer is in the chatroom
 	gLock.acquire()
-	result = USER_MEMBER.get(hashID, "F")
+	result = USER_MEMBER.get(peer_hashID, "F")
 	gLock.release()
 	if result == "F":
 		# send a join request to room server for the latest member list
 		join_resp_decode = send_join()
 		if !(peer_name in join_resp_decode):
-			print("%s not in chatroom member list, terminating connection\n" % peer_name)
+			print("[client_thd] %s not in member list, terminating connection at thread %s\n" % (peer_name, myName))
 			csckt.close()
 			return
 
@@ -244,7 +244,7 @@ def client_thd(csckt, caddr):
 
 	# add the new client socket to the USER_BSCKT
 	gLock.acquire()
-	USER_BSCKT[hashID] = csckt
+	USER_BSCKT[peer_hashID] = csckt
 	gLock.release()
 
 	# set blocking duration to 1.0 second
@@ -259,13 +259,31 @@ def client_thd(csckt, caddr):
 		except socket.timeout:
 			continue
 		except socket.error as err:
-			print("[client_thd] Text flooding error at thread %s: %s\n" % (myName, err))
+			print("[client_thd] Message receiving error at thread %s: %s\n" % (myName, err))
 			continue
 
 		# if a message arrived, do the following
 		if rmsg:
-			CmdWin.insert(1.0,"\nGot a message! Relay it to other peers.")
+			CmdWin.insert(1.0,"\nGot a message.")
 			
+			rmsg_seg = rmsg.decode("ascii").split(':')
+			
+			if rmsg_seg[0] != 'T':
+				print("[client_thd] Message flooding error (not a TEXT message) at thread %s: %s\n" % myName)
+				continue
+			
+			if rmsg_seg[1] != USER_ROOM:
+				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
+				continue
+
+			if
+			
+			
+			
+			
+			
+			CmdWin.insert(1.0,"\nRelay it to other peers.")
+
 			gLock.acquire()
 			# backward links
 			if len(USER_BSCKT) > 1:
@@ -283,7 +301,7 @@ def client_thd(csckt, caddr):
 			
 			# remove the backward link
 			gLock.acquire()
-			del USER_BSCKT[hashID]
+			del USER_BSCKT[peer_hashID]
 			gLock.release()
 			break
 
