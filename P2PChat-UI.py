@@ -32,7 +32,7 @@ def sdbm_hash(instr):
 # KEEPALIVE Timer designed for continuously sending JOIN request
 #
 
-class TimerClass(threading.Thread):
+class KEEPALIVETimerClass(threading.Thread):
 
 	def __init__(self):
 		threading.Thread.__init__(self)
@@ -45,8 +45,6 @@ class TimerClass(threading.Thread):
 
 	def stop(self):
 		self.event.set()
-
-
 
 #
 # Global variables list
@@ -86,7 +84,7 @@ USER_MSGID = 0
 USER_HASHID = 0
 
 # a timer object
-KEEPALIVE = TimerClass()
+KEEPALIVE = KEEPALIVETimerClass()
 
 # a list of all thread handlers
 USER_THREAD = []
@@ -294,16 +292,11 @@ def forward_thd():
 
 	fsckt = socket.socket()
 
-	while
+	while len(USER_FSCKT) == 0:
 		# build a forward link
 		if connect_member(fsckt):
 			### Text flooding procedure ###
 			text_flooding(fckt)
-		else:
-			
-			continue
-
-
 	return
 
 def client_thd(csckt, caddr):
