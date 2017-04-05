@@ -400,7 +400,7 @@ def client_thd(csckt, caddr):
 	# update USER_STATE
 	gLock.acquire()
 	USER_STATE = "CONNECTED"
-	print("At state %s: " % USER_STATE)
+	print("At state %s " % USER_STATE)
 	gLock.release()
 	
 	# add the new client socket to USER_BSCKT
@@ -499,7 +499,7 @@ def do_User():
 	# Set USER_STATE to NAMED
 	gLock.acquire()
 	USER_STATE = "NAMED"
-	print("At state %s: " % USER_STATE)
+	print("At state %s " % USER_STATE)
 	gLock.release()
 
 	return
@@ -596,7 +596,7 @@ def do_Join():
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + USER_ROOM)
 		gLock.acquire()
 		USER_STATE = "JOINED"
-		print("At state %s: " % USER_STATE)
+		print("At state %s " % USER_STATE)
 		gLock.release()
 		
 		# concatenate a string for all of the room members in the room
@@ -711,21 +711,20 @@ def do_Quit():
 		each_sckt.close()
 	for each_hashID, each_sckt in USER_BSCKT:
 		each_sckt.close()
-	
 
-	# wait for all threads to terminate
-	gLock.acquire()
+
+	# wait for all threads to terminat
 	for each_thread in USER_THREAD:
 		each_thread.join()
 	gLock.release()
 
 
-	print("All threads terminated. Bye!")
-
 	gLock.acquire()
 	USER_STATE = "TERMINATED"
-	print("At state %s: " % USER_STATE)
+	print("At state %s" % USER_STATE)
 	gLock.release()
+
+	print("All threads terminated. Bye!")
 
 	KEEPALIVE.stop()
 	sys.exit(0)
