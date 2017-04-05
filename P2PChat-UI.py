@@ -229,14 +229,14 @@ def connect_member(sckt):
 				continue
 			print("[connect_member] start p2p")
 			if p2p_handshake(lst[start], sckt):
-				USER_FSCKT.append(lst[start], sckt)
-				gLock.release()
+				USER_FSCKT.append((lst[start], sckt))
+
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
 				print("[connect_member] finish p2p")
 				return True
 			else:
 				start = (start+1) % len(lst)
-				gLock.release()
+
 
 				print("[connect_member] failed p2p")
 				continue
@@ -244,7 +244,7 @@ def connect_member(sckt):
 	return False
 
 
-def text_flooding(sckt, linkType, myName):
+def text_flooding(sckt, linkType, myName, peer_hashID):
 
 	global all_thread_running, USER_MEMBER
 
@@ -379,7 +379,8 @@ def forward_thd():
 			print("[forward_thd] successful")
 	
 	print("[forward_thd] into text_flooding")
-	text_flooding(fckt, "Forward", "forwardThread")
+	dummy = -1
+	text_flooding(fsckt, "Forward", "forwardThread", dummy)
 	print("[forward_thd] after text_flooding")
 	return
 
@@ -462,7 +463,7 @@ def client_thd(csckt, caddr):
 
 
 	### Text flooding procedure ###
-	text_flooding(csckt, "Backward", myName)
+	text_flooding(csckt, "Backward", myName, peer_hashID)
 
 	return
 
