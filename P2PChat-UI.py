@@ -205,7 +205,7 @@ def connect_member(sckt):
 def forward_thd():
 	fsckt = socket.socket()
 	connect_member(fsckt)
-	
+
 	return
 
 def client_thd(csckt, caddr):
@@ -550,14 +550,19 @@ def do_Send():
 		CmdWin.insert(1.0, "\nYou have not yet join a chatroom.")
 		return
 
+	USER_MSGID += 1
+	USER_MEMBER[USER_HASHID][3] += 1
 	# T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
 	message = "T:"+USER_ROOM+":"+USER_HASHID+":"+USER_NAME+":"+USER_MSGID+":"+str(len(msg))+msg+"::\r\n"
-	# send to all members in the member list
+	# send to all peers
 	# FORWARD LINK
+	if (len(USER_FSCKT) != 0)
 		# send message
+		USER_FSCKT[1].send(message.encode("ascii"))
 	# BACKWARD LINK
-	for hid, tup in USER_BSCKT:
+	for hid, sckt in USER_BSCKT:
 		# send message
+		sckt.send(message.encode("ascii"))
 
 	# display message
 	CmdWin.insert(1.0, "\n"+USER_NAME+": "+msg)
