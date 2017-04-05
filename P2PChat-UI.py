@@ -253,7 +253,6 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 		# if a message arrived, do the following
 		if rmsg:
-			CmdWin.insert(1.0,"\nGot a message.")
 			
 			rmsg_seg = rmsg.decode("ascii").split(':')
 			
@@ -313,11 +312,11 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 
 			gLock.acquire()
-			if int(origin_msgID) <= int(USER_MEMBER[int(origin_hashID)][3]):
-				print("[client_thd] Message flooding error (duplicate message) at thread %s" % myName)
+			if int(origin_msgID) == int(USER_MEMBER[int(origin_hashID)][3]):
+				print("[text_flooding] Message flooding error (duplicate message) at thread %s" % myName)
 				gLock.release()
 				continue
-			else:
+			elif int(origin_msgID) > int(USER_MEMBER[int(origin_hashID)][3]):
 				USER_MEMBER[int(origin_hashID)] = (USER_MEMBER[int(origin_hashID)][0], USER_MEMBER[int(origin_hashID)][1], USER_MEMBER[int(origin_hashID)][2], origin_msgID)
 			gLock.release()
 
@@ -329,13 +328,14 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 			gLock.acquire()
 			# backward links
-			if len(USER_BSCKT) > 1:
-				for hid, each_sckt in USER_BSCKT:
-					if each_sckt != sckt:
+			if len(USER_BSCKT) > 0:
+				for each_hid, each_sckt in USER_BSCKT.items():
+					if each_hid != origin_hashID:
 						each_sckt.send(rmsg)
 			# forward link
 			for each_sckt in USER_FSCKT:
-				each_sckt[1].send(rmsg)
+				if each_sckt[0] != origin_hashID:
+					each_sckt[1].send(rmsg)
 			gLock.release()
 
 		# else a broken connection is detected, do the following
@@ -346,12 +346,14 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			
 			if linkType == "Forward":
 				# remove the forward link from list
+				sckt.close()
 				gLock.acquire()
 				del USER_FSCKT[0]
 				gLock.release()
 				
 				# search for a new forward link
 				index = True
+				sckt = socket.socket()
 				while index:
 					index = not connect_member(sckt)
 					time.sleep(2.0)
@@ -801,7 +803,7 @@ def do_Quit():
 	gLock.acquire()
 	for each_sckt in USER_FSCKT:
 		each_sckt[1].close()
-	for each_hashID, each_sckt in USER_BSCKT:
+	for each_hashID, each_sckt in USER_BSCKT.items():
 		each_sckt.close()
 
 	# wait for all threads to terminate
