@@ -706,6 +706,7 @@ def do_Join():
 			room_member += ("\t" + port)
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
+			print("[do_Join] get hashid: "+str(hashid))
 			USER_MEMBER[hashid] = (name, ip, port,0)
 			count += 1
 			index += 3
@@ -768,14 +769,14 @@ def do_Send():
 	USER_MSGID += 1
 	USER_MEMBER[USER_HASHID] = (USER_MEMBER[USER_HASHID][0], USER_MEMBER[USER_HASHID][1], USER_MEMBER[USER_HASHID][2], USER_MEMBER[USER_HASHID][3]+1)
 	# T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
-	message = "T:"+USER_ROOM+":"+USER_HASHID+":"+USER_NAME+":"+USER_MSGID+":"+str(len(msg))+msg+"::\r\n"
+	message = "T:"+USER_ROOM+":"+str(USER_HASHID)+":"+USER_NAME+":"+str(USER_MSGID)+":"+str(len(msg))+msg+"::\r\n"
 	# send to all peers
 	# FORWARD LINK
 	if (len(USER_FSCKT) != 0):
 		# send message
 		USER_FSCKT[1].send(message.encode("ascii"))
 	# BACKWARD LINK
-	for hid, sckt in USER_BSCKT:
+	for hid, sckt in USER_BSCKT.items():
 		# send message
 		sckt.send(message.encode("ascii"))
 
