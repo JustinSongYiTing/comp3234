@@ -189,7 +189,7 @@ def connect_member(sckt):
 	start = (lst.index(USER_HASHID)+1)% len(lst)
 	
 	while (lst[start] != USER_HASHID):
-	
+		print("[connect_member] start while loop")
 		gLock.acquire()
 		ip = USER_MEMBER[lst[start]][1]
 		port = USER_MEMBER[lst[start]][2]
@@ -208,7 +208,7 @@ def connect_member(sckt):
 				start = (start+1) % len(lst)
 				gLock.release()
 				continue
-
+			print("[connect_member] start p2p")
 			if p2p_handshake(lst[start], sckt):
 				USER_FSCKT[0] = (lst[start], sckt)
 				gLock.release()
@@ -228,6 +228,7 @@ def text_flooding(sckt, linkType):
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
+	print("[text_flooding] start")
 
 	# start lining
 	while all_thread_running:
@@ -337,11 +338,17 @@ def forward_thd():
 	index = True
 	while index:
 		# build a forward link
+		print("[forward_thd] connecting member")
 		index = not connect_member(fsckt)
-		time.sleep(2.0)
+		if index:
+			print("[forward_thd] not successful")
+			time.sleep(2.0)
+		else:
+			print("[forward_thd] successful")
 	
-
+	print("[forward_thd] into text_flooding")
 	text_flooding(fckt, "Forward")
+	print("[forward_thd] after text_flooding")
 	return
 
 def client_thd(csckt, caddr):
