@@ -159,7 +159,6 @@ def p2p_handshake(hashid, sckt):
 	gLock.release()
 
 
-	print("[p2p_handshake] end")
 	return True
 	
 
@@ -208,8 +207,6 @@ def connect_member(sckt):
 		# if there is a BACKWARD LINK between start and this program
 		if lst[start] in USER_BSCKT:
 			start = (start+1) % len(lst)
-			gLock.release()
-
 			continue
 		else:
 			# set_connection to lst[start]
@@ -218,7 +215,6 @@ def connect_member(sckt):
 			except socket.error as serr:
 				print("[connect_member] socket connect error: ", serr)
 				start = (start+1) % len(lst)
-				gLock.release()
 				continue
 			
 			if p2p_handshake(lst[start], sckt):
@@ -235,7 +231,7 @@ def connect_member(sckt):
 
 def text_flooding(sckt, linkType, myName, peer_hashID):
 
-	global all_thread_running, USER_MEMBER
+	global all_thread_running, USER_MEMBER, USER_FSCKT, USER_BSCKT, USER_ROOM
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
@@ -245,7 +241,6 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 	while all_thread_running:
 
 		# wait for any message to arrive
-		print("Waiting for message")
 		try:
 			rmsg = sckt.recv(500)
 		except socket.timeout:
@@ -390,6 +385,8 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 def forward_thd():
 
+	global USER_STATE
+	
 	fsckt = socket.socket()
 
 	index = True
@@ -402,10 +399,12 @@ def forward_thd():
 	
 	gLock.acquire()
 	USER_STATE = "CONNECTED"
+	print("At state %s " % USER_STATE)
 	gLock.release()
+
 	dummy = -1
 	text_flooding(fsckt, "Forward", "forwardThread", dummy)
-	print("[forward_thd] after text_flooding")
+	
 	return
 
 def client_thd(csckt, caddr):
