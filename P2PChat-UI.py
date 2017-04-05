@@ -153,11 +153,12 @@ def p2p_handshake(hashid, sckt):
 	if (rmsg_lst[0] != "S") or (len(rmsg_lst)!= 4):
 		print("[p2p_handshake] wrong format rmsg_lst")
 		return False
-	
+	print("[p2p_handshake] a156")
 	gLock.acquire()
 	print("[p2p_handshake] right format rmsg_lst")
-	USER_MEMBER[hashid][3] = rmsg_lst[1]
+	USER_MEMBER[hashid] = (USER_MEMBER[hashid][0], USER_MEMBER[hashid][1], USER_MEMBER[hashid][2], rmsg_lst[1])
 	gLock.release()
+	print("[p2p_handshake] r160")
 
 	print("[p2p_handshake] end")
 	return True
@@ -200,14 +201,17 @@ def connect_member(sckt):
 	
 	while (lst[start] != USER_HASHID):
 		print("[connect_member] start while loop")
+		print("[connect_member] a204")
 		gLock.acquire()
 		ip = USER_MEMBER[lst[start]][1]
 		port = USER_MEMBER[lst[start]][2]
+		gLock.release()
 		
 		# if there is a BACKWARD LINK between start and this program
 		if lst[start] in USER_BSCKT:
 			start = (start+1) % len(lst)
 			gLock.release()
+			print("[connect_member] r212")
 			continue
 		else:
 			# set_connection to lst[start]
@@ -217,17 +221,20 @@ def connect_member(sckt):
 				print("[connect_member] socket connect error: ", serr)
 				start = (start+1) % len(lst)
 				gLock.release()
+				print("[connect_member] r223")
 				continue
 			print("[connect_member] start p2p")
 			if p2p_handshake(lst[start], sckt):
-				USER_FSCKT[0] = (lst[start], sckt)
+				USER_FSCKT.append(lst[start], sckt)
 				gLock.release()
+				print("[connect_member] r229")
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
 				print("[connect_member] finish p2p")
 				return True
 			else:
 				start = (start+1) % len(lst)
 				gLock.release()
+				print("[connect_member] r235")
 				print("[connect_member] failed p2p")
 				continue
 	print("[connect_member] end while loop")
@@ -267,7 +274,9 @@ def text_flooding(sckt, linkType):
 			origin_name = rmsg_seg[3]
 			origin_msgID = rmsg_seg[4]
 			origin_msgLen = rmsg_seg[5]
-			origin_msgCon = rmsg_seg[6]
+			origin_msgCon = ""
+			for i in range(6, len(rmsg_seg)-3):
+				origin_msgCon += rmsg_seg[i]
 			
 			# check message validity
 			if origin_msgType != 'T':
@@ -422,15 +431,19 @@ def client_thd(csckt, caddr):
 	CmdWin.insert(1.0, "\n%s has linked to me" % peer_name)
 
 	# update USER_STATE
+	print("[client_thd] a433")
 	gLock.acquire()
 	USER_STATE = "CONNECTED"
 	print("At state %s " % USER_STATE)
 	gLock.release()
+	print("[client_thd] r438")
 	
 	# add the new client socket to USER_BSCKT
+	print("[client_thd] a442")
 	gLock.acquire()
 	USER_BSCKT[peer_hashID] = csckt
 	gLock.release()
+	print("[client_thd] r445")
 
 	### Text flooding procedure ###
 	text_flooding(csckt, "Backward")
@@ -638,7 +651,6 @@ def do_Join():
 			room_member += ("\t" + port)
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
-			print("[do_Join] add ", name, " ", hashid)
 			USER_MEMBER[hashid] = (name, ip, port,0)
 			count += 1
 			index += 3
