@@ -137,11 +137,17 @@ def p2p_handshake(hashid, sckt):
 	except socket.error as err:
 		print("[p2p_handshake] Receive Error: ", err)
 		return False
+
 	rmsg_lst = rmsg.decode("ascii").split(':')
+	
 	# no error: get S:msgID::\r\n
 	if (rmsg_lst[0] != S)
 		return False
+	
+	gLock.acquire()
 	USER_MEMBER[hashid][3] = rmsg_lst[1]
+	gLock.release()
+
 	return True
 	
 
@@ -181,11 +187,15 @@ def connect_member(sckt):
 	start = lst.index(USER_HASHID)+1
 	
 	while (lst[start] != USER_HASHID):
+	
+		gLock.acquire()
 		ip = USER_MEMBER[lst[start]][1]
 		port = USER_MEMBER[lst[start]][2]
+		
 		# if there is a BACKWARD LINK between start and this program
 		if lst[start] in USER_BSCKT:
 			start = (start+1) % lst.size()
+			gLock.release()
 			continue
 		else:
 			# set_connection to lst[start]
@@ -194,15 +204,18 @@ def connect_member(sckt):
 			except socket.error as serr:
 				print("[connect_member] socket connect error: ", serr)
 				start = (start+1) % lst.size()
+				gLock.release()
 				continue
 
 			if p2p_handshake(lst[start], sckt):
 				USER_FSCKT[0] = (lst[start], sckt)
+				gLock.release()
 				return True
 			else:
 				start = (start+1) % lst.size()
+				gLock.release()
 				continue
-				
+		
 	return False
 
 
@@ -245,9 +258,11 @@ def text_flooding(sckt, linkType):
 			if origin_chatroom != USER_ROOM:
 				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
 				continue
+			gLock.acquire()
 			if origin_msgID < USER_MEMBER[origin_hashID][3]
 				print("[client_thd] Message flooding error (duplicate message) at thread %s: %s\n" % myName)
-
+			gLock.release()
+			
 			# display the message in the Message Window
 			MsgWin.insert(1.0, "[%s] %s" % (origin_name, origin_msgCon))
 
@@ -353,7 +368,7 @@ def client_thd(csckt, caddr):
 	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
 
 	# check request message validity
-	if (rmsg_seg[0] != 'P') || (rmsg_seg[1] != USER_ROOM):
+	if (rmsg_seg[0] != 'P') or (rmsg_seg[1] != USER_ROOM):
 		print("[client_thd] Handshaking error at thread %s" % myName)
 		csckt.close()
 		return
@@ -364,7 +379,7 @@ def client_thd(csckt, caddr):
 	if result == "F":
 		# send a join request to room server for the latest member list
 		join_resp_decode = send_join()
-		if !(peer_name in join_resp_decode):
+		if not (peer_name in join_resp_decode):
 			print("[client_thd] %s not in member list, terminating connection at thread %s" % (peer_name, myName))
 			csckt.close()
 			return
@@ -379,8 +394,10 @@ def client_thd(csckt, caddr):
 	CmdWin.insert(1.0, "\n%s has linked to me" % peer_name)
 
 	# update USER_STATE
+	gLock.acquire()
 	USER_STATE = "CONNECTED"
-
+	gLock.release()
+	
 	# add the new client socket to USER_BSCKT
 	gLock.acquire()
 	USER_BSCKT[peer_hashID] = csckt
@@ -395,7 +412,7 @@ def client_thd(csckt, caddr):
 
 def listen_thd():
 	# List out global variables
-	global USER_THREAD
+	global USER_THREAD, USER_IP, USER_PORT
 
 	# create a socket for continuous listening
 	listen_sckt = socket.socket()
@@ -436,7 +453,9 @@ def listen_thd():
 		cthd.start()
 
 		# add this new thread to USER_THREAD list
+		gLock.acquire()
 		USER_THREAD.append(cthd)
+		gLock.release()
 
 	return
 
@@ -471,7 +490,9 @@ def do_User():
 	userentry.delete(0, END)
 
 	# Set USER_STATE to NAMED
+	gLock.acquire()
 	USER_STATE = "NAMED"
+	gLock.release()
 
 	return
 
@@ -518,17 +539,22 @@ def do_Join():
 	
 	
 	CmdWin.insert(1.0, "\nPress JOIN")
-
+	
+	gLock.acquire()
 	# user have not yet input username
 	if USER_STATE == "START":
 		CmdWin.insert(1.0, "\nPlease input your username first")
 		userentry.delete(0, END)
+		gLock.release()
 		return
 	# user already joined a chatroom
 	if USER_STATE == "JOINED" or USER_STATE == "CONNECTED":
 		CmdWin.insert(1.0, "\nYou have already joined a chatroom group: " + USER_ROOM)
 		userentry.delete(0, END)
+		gLock.release()
 		return
+	gLock.release()
+
 
 	# get user input
 	USER_ROOM = userentry.get()
@@ -560,8 +586,10 @@ def do_Join():
 	elif join_resp_decode[0] == "M":
 	
 		CmdWin.insert(1.0, "\nSuccessfully joined the chatroom: " + USER_ROOM)
+		gLock.acquire()
 		USER_STATE = "JOINED"
-
+		gLock.release()
+		
 		# concatenate a string for all of the room members in the room
 		gLock.acquire()
 		room_member = "\nHere are the members in your chatgroup: "
@@ -593,14 +621,18 @@ def do_Join():
 		fthd.start()
 
 		# add the forward thread to the list of thread handlers
+		gLock.acquire()
 		USER_THREAD.append(fthd)
+		gLock.release()
 
 		# create and start a listening thread
 		lthd = threading.Thread(name="listenThread", target=listen_thd)
 		lthd.start()
 
 		# add the forward thread to the list of thread handlers
+		gLock.acquire()
 		USER_THREAD.append(lthd)
+		gLock.release()
 
 	return
 
@@ -614,10 +646,14 @@ def do_Send():
 	if msg == "":
 		return
 	# check if the program has joined or connected to a chatroom program
+	gLock.acquire()
 	if USER_STATE == "JOINED":
 		CmdWin.insert(1.0, "\nYou have not yet connect to a chatroom network. Please try again later.")
+		gLock.release()
+		return
 	if USER_STATE != "CONNECTED":
 		CmdWin.insert(1.0, "\nYou have not yet join a chatroom.")
+		gLock.release()
 		return
 
 	USER_MSGID += 1
@@ -634,9 +670,12 @@ def do_Send():
 		# send message
 		sckt.send(message.encode("ascii"))
 
+	gLock.release()
+
 	# display message
 	CmdWin.insert(1.0, "\n"+USER_NAME+": "+msg)
-	
+
+	return
 
 
 def do_Quit():
