@@ -285,13 +285,13 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				# send a join request to room server for the latest member list
 				join_resp_decode = send_join()
 				
-				# origin_name not in member list
+				# terminate if origin_name not in latest member list
 				if not (origin_name in join_resp_decode):
 					print("[client_thd] %s not in member list, terminating connection at thread %s" % (origin_name, myName))
 					csckt.close()
 					return
 				
-				# origin_name in latest member list
+				# update member information origin_name in latest member list
 				count = 1
 				index = 2
 				# format: userA  A_IP  A_port
@@ -300,10 +300,9 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 					name = join_resp_decode[index]
 					ip = join_resp_decode[index+1]
 					port = join_resp_decode[index+2]
-					
-					# fill in member information
 					hashid = sdbm_hash(name+ip+port)
 					
+					# fill in member information
 					gLock.acquire()
 					result = USER_MEMBER.get(hashid, "F")
 					if result == "F":
@@ -773,7 +772,7 @@ def do_Send():
 	# FORWARD LINK
 	if (len(USER_FSCKT) != 0):
 		# send message
-		USER_FSCKT[0].send(message.encode("ascii"))
+		USER_FSCKT[0][1].send(message.encode("ascii"))
 	# BACKWARD LINK
 	for hid, sckt in USER_BSCKT.items():
 		# send message
