@@ -203,8 +203,7 @@ def connect_member(sckt):
 	start = (lst.index(USER_HASHID)+1)% len(lst)
 	
 	while (lst[start] != USER_HASHID):
-		print("[connect_member] start while loop")
-		print("[connect_member] a204")
+
 		gLock.acquire()
 		print("a10")
 		ip = USER_MEMBER[lst[start]][1]
@@ -225,20 +224,16 @@ def connect_member(sckt):
 				print("[connect_member] socket connect error: ", serr)
 				start = (start+1) % len(lst)
 				gLock.release()
-
 				continue
-			print("[connect_member] start p2p")
+			
 			if p2p_handshake(lst[start], sckt):
-				USER_FSCKT.append(lst[start], sckt)
-				gLock.release()
+				USER_FSCKT.append((lst[start], sckt))
+				
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
-				print("[connect_member] finish p2p")
 				return True
 			else:
 				start = (start+1) % len(lst)
-				gLock.release()
 
-				print("[connect_member] failed p2p")
 				continue
 	print("[connect_member] end while loop")
 	return False
@@ -324,10 +319,8 @@ def text_flooding(sckt, linkType, myName):
 			if linkType == "Forward":
 				# remove the forward link from list
 				gLock.acquire()
-				print("a13")
 				del USER_FSCKT[0]
 				gLock.release()
-				print("r13")
 				
 				# search for a new forward link
 				index = True
@@ -342,10 +335,8 @@ def text_flooding(sckt, linkType, myName):
 				# remove the backward link from list
 				sckt.close()
 				gLock.acquire()
-				print("a14")
 				del USER_BSCKT[peer_hashID]
 				gLock.release()
-				print("r14")
 				break
 
 	# termination
