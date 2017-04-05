@@ -208,8 +208,6 @@ def connect_member(sckt):
 		# if there is a BACKWARD LINK between start and this program
 		if lst[start] in USER_BSCKT:
 			start = (start+1) % len(lst)
-			gLock.release()
-
 			continue
 		else:
 			# set_connection to lst[start]
@@ -218,16 +216,18 @@ def connect_member(sckt):
 			except socket.error as serr:
 				print("[connect_member] socket connect error: ", serr)
 				start = (start+1) % len(lst)
-				gLock.release()
 				continue
 			
 			if p2p_handshake(lst[start], sckt):
 				USER_FSCKT.append((lst[start], sckt))
-				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
+				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0])
+				gLock.acquire()
+				print("[connect_member] state connected")
+				USER_STATE = "CONNECTED"
+				gLock.release()
 				return True
 			else:
 				start = (start+1) % len(lst)
-
 				continue
 	print("[connect_member] end while loop")
 	return False
@@ -235,7 +235,7 @@ def connect_member(sckt):
 
 def text_flooding(sckt, linkType, myName, peer_hashID):
 
-	global all_thread_running, USER_MEMBER
+	global all_thread_running, USER_MEMBER, USER_ROOM, USER_BSCKT
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
@@ -245,7 +245,6 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 	while all_thread_running:
 
 		# wait for any message to arrive
-		print("Waiting for message")
 		try:
 			rmsg = sckt.recv(500)
 		except socket.timeout:
@@ -401,6 +400,7 @@ def forward_thd():
 		
 	
 	gLock.acquire()
+	print("[forward_thd] state is connected")
 	USER_STATE = "CONNECTED"
 	gLock.release()
 	dummy = -1
@@ -762,7 +762,7 @@ def do_Send():
 		return
 
 	USER_MSGID += 1
-	USER_MEMBER[USER_HASHID][3] += 1
+	USER_MEMBER[USER_HASHID] = (USER_MEMBER[USER_HASHID][0], USER_MEMBER[USER_HASHID][1], USER_MEMBER[USER_HASHID][2], USER_MEMBER[USER_HASHID][3]+1)
 	# T:roomname:originHID:origin_username:msgID:msgLength:Message content::\r\n
 	message = "T:"+USER_ROOM+":"+USER_HASHID+":"+USER_NAME+":"+USER_MSGID+":"+str(len(msg))+msg+"::\r\n"
 	# send to all peers
