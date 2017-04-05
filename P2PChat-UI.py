@@ -103,18 +103,19 @@ def sdbm_hash(instr):
 # Other function calls
 #
 
-
-def set_connection(ip, port):
-
-	return
-
 def hash_list():
+	# List out global variables
+	global USER_MEMBER
+
 	gList = []
 	for hid, info in USER_MEMBER.items():
 		gList.append(hid)
 	return gList.sort()
 
 def p2p_handshake(hashid, sckt):
+	# List out global variables
+	global USER_ROOM, USER_NAME, USER_IP, USER_PORT,  USER_MSGID, USER_MEMBER
+
 	sckt.settimeout(3.0)
 	# P:roomname:username:IP:Port:msgID::\r\n
 	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + USER_MSGID + "::\r\n"
@@ -141,7 +142,7 @@ def p2p_handshake(hashid, sckt):
 # A funtion for sending out JOIN request
 def send_join():
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE
+	global USER_ROOM, USER_NAME, USER_IP, USER_PORT, USER_SCKT
 
 	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
 	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP.getsockname()[0] + ":" + USER_PORT+"::\r\n"
@@ -161,6 +162,9 @@ def send_join():
 
 
 def connect_member(sckt):
+	# List out global variables
+	global USER_HASHID, USER_MEMBER, USER_BSCKT, USER_FSCKT
+
 	# sorted list with member hashID 
 	lst = hash_list()
 	
@@ -209,6 +213,9 @@ def forward_thd():
 	return
 
 def client_thd(csckt, caddr):
+
+	# List out global variables
+	global USER_ROOM, USER_MEMBER, USER_MSGID, USER_STATE, USER_BSCKT
 
 	# get name of thread
 	myName = threading.currentThread().name
@@ -326,6 +333,8 @@ def client_thd(csckt, caddr):
 
 
 def listen_thd():
+	# List out global variables
+	global USER_THREAD
 
 	# create a socket for continuous listening
 	listen_sckt = socket.socket()
@@ -382,7 +391,7 @@ def listen_thd():
 def do_User():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE 
+	global USER_STATE, USER_NAME
 	
 	# Check state. Only accept request before the user join any chatgroup
 	if USER_STATE != "START" and USER_STATE != "NAMED" :
@@ -409,7 +418,7 @@ def do_User():
 def do_List():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE 
+	global USER_SCKT 
 	
 	CmdWin.insert(1.0, "\nPress List")
 
@@ -444,7 +453,7 @@ def do_List():
 def do_Join():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME, USER_SCKT, USER_IP, USER_PORT, USER_ROOM, KEEPALIVE
+	global USER_STATE, USER_ROOM, KEEPALIVE, USER_THREAD
 	
 	
 	CmdWin.insert(1.0, "\nPress JOIN")
@@ -455,7 +464,7 @@ def do_Join():
 		userentry.delete(0, END)
 		return
 	# user already joined a chatroom
-	if USER_STATE == "JOINED":
+	if USER_STATE == "JOINED" or USER_STATE == "CONNECTED":
 		CmdWin.insert(1.0, "\nYou have already joined a chatroom group: " + USER_ROOM)
 		userentry.delete(0, END)
 		return
@@ -538,6 +547,9 @@ def do_Join():
 	return
 
 def do_Send():
+	# List out global variables
+	global USER_STATE, USER_MSGID, USER_MEMBER, USER_HASHID, USER_ROOM, USER_NAME, USER_FSCKT, USER_BSCKT
+
 	CmdWin.insert(1.0, "\nPress Send")
 	msg = userentry.get()
 	# check if user input is empty
@@ -570,6 +582,9 @@ def do_Send():
 
 
 def do_Quit():
+	# List out global variables
+	global USER_STATE, KEEPALIVE
+
 	CmdWin.insert(1.0, "\nPress Quit")
 	USER_STATE = "TERMINATED"
 	KEEPALIVE.stop()
