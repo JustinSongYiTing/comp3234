@@ -113,7 +113,7 @@ def check_connection(ip, port):
 	return True
 
 def set_connection(ip, port):
-
+	
 
 def hash_list():
 	gList = []
@@ -169,6 +169,7 @@ def connect_member():
 			start = (start+1) % lst.size()
 		else:
 			# set_connection to lst[start]
+			USER_SCKT.connect()
 			if:
 
 				if p2p_handshake():
@@ -205,7 +206,7 @@ def client_thd(csckt, caddr):
 
 	# add the new client socket to the USER_BSCKT
 	gLock.acquire()
-	hashID = sdbm_hash(
+	hashID = sdbm_hash()
 	USER_BSCKT[]=caddr
 	gLock.release()
 	return
