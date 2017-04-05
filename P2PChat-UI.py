@@ -131,7 +131,7 @@ def p2p_handshake(hashid, sckt):
 	sckt.send(msg.encode("ascii"))
 	# receive message
 	try:
-		rmsg = sckt.receive(500)
+		rmsg = sckt.recv(500)
 	# error: No response; peer just close the connection
 	except socket.timeout:
 		return False
@@ -391,7 +391,7 @@ def client_thd(csckt, caddr):
 
 	# send response message
 	gLock.acquire()
-	smsg = "S:" + USER_MSGID + "::\r\n"
+	smsg = "S:" + str(USER_MSGID) + "::\r\n"
 	csckt.send(smsg.encode("ascii"))
 	gLock.release()
 
