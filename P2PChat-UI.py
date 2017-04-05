@@ -11,7 +11,7 @@ import sys
 import socket
 import threading
 
-# Timer designed for continuously sending JOIN request
+# KEEPALIVE Timer designed for continuously sending JOIN request
 class TimerClass(threading.Thread):
 
 	def __init__(self):
@@ -31,10 +31,19 @@ class TimerClass(threading.Thread):
 # Global variables list
 #
 
+# server info
+SERVER_IP = 0
+SERVER_PORT = 0
+
+# user info
 USER_STATE = "START"
-
 USER_NAME = ""
-
+# user ip address
+USER_IP = ""
+# user port number
+USER_PORT = sys.argv[3]
+# user chatroom name
+USER_ROOM = ""
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
 
@@ -44,15 +53,6 @@ USER_FSCKT = []
 # a dictionary for BACKWARD LINK
 # (peer_hashID, peer_socket)
 USER_BSCKT = {}
-
-# user ip address
-USER_IP = ""
-
-# user port number
-USER_PORT = sys.argv[3]
-
-# user chatroom name
-USER_ROOM = ""
 
 # a dictionary for members in the same chatroom
 # (member_hashID, (name, ip, port, msgid))
@@ -76,9 +76,7 @@ gLock = threading.Lock()
 # a flag variable to control all threads
 all_thread_running = True
 
-# server info
-SERVER_IP = 0
-SERVER_PORT = 0
+
 
 
 #
@@ -105,13 +103,6 @@ def sdbm_hash(instr):
 # Other function calls
 #
 
-def check_connection(ip, port):
-	try:
-		USER_SCKT.connect((SERVER_IP, SERVER_PORT))
-	except OSError as e:
-		print("[check_connection] OSError: ", e)
-		return False
-	return True
 
 def set_connection(ip, port):
 
@@ -123,13 +114,28 @@ def hash_list():
 		gList.append(hid)
 	return gList.sort()
 
-def p2p_handshake():
+def p2p_handshake(hashid, sckt):
+	sckt.settimeout(3.0)
 	# P:roomname:username:IP:Port:msgID::\r\n
 	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + USER_MSGID + "::\r\n"
 	# send message
-	# receive message 
-	# no error: get S:msgID::\r\n 	return True
-	# error: No response; just close the connection 	return False
+	sckt.send(msg.encode("ascii"))
+	# receive message
+	try:
+		rmsg = sckt.receive(500)
+	# error: No response; peer just close the connection
+	except socket.timeout:
+		return False
+	except socket.error as err:
+		print("[p2p_handshake] Receive Error: ", err)
+		return False
+	rmsg_lst = rmsg.decode("ascii").split(':')
+	# no error: get S:msgID::\r\n
+	if (rmsg_lst[0] != S)
+		return False
+	USER_MEMBER[hashid][3] = rmsg_lst[1]
+	return True
+	
 
 
 # A funtion for sending out JOIN request
@@ -154,12 +160,12 @@ def send_join():
 
 
 
-def connect_member():
-
+def connect_member(sckt):
+	# sorted list with member hashID 
 	lst = hash_list()
 	
 	if len(lst) == 1:
-		return
+		return False
 	
 	start = lst.index(USER_HASHID)+1
 	
@@ -167,20 +173,26 @@ def connect_member():
 		ip = USER_MEMBER[lst[start]][1]
 		port = USER_MEMBER[lst[start]][2]
 		# if there is a BACKWARD LINK between start and this program
-		if lst[start] in USER_MEMBER:
+		if lst[start] in USER_BSCKT:
 			start = (start+1) % lst.size()
+			continue
 		else:
 			# set_connection to lst[start]
-			USER_SCKT.connect()
-			if:
+			try:
+				sckt.connect(ip, int(port))
+			except socket.error as serr:
+				print("[connect_member] socket connect error: ", serr)
+				start = (start+1) % lst.size()
+				continue
 
-				if p2p_handshake():
-					break
-				else:
-					start = (start+1) % lst.size()
+			if p2p_handshake(lst[start], sckt):
+				USER_FSCKT[0] = (lst[start], sckt)
+				return True
 			else:
 				start = (start+1) % lst.size()
-	return
+				continue
+				
+	return False
 
 #
 # End of Other function calls
@@ -191,8 +203,9 @@ def connect_member():
 #
 
 def forward_thd():
-	connect_member()
-
+	fsckt = socket.socket()
+	connect_member(fsckt)
+	
 	return
 
 def client_thd(csckt, caddr):
