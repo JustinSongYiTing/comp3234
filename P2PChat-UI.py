@@ -154,9 +154,11 @@ def p2p_handshake(hashid, sckt):
 def send_join():
 	# List out global variables
 	global USER_ROOM, USER_NAME, USER_IP, USER_PORT, USER_SCKT
-
+	print("send_join USER_IP"+USER_IP)
+	print("send_join USER_IP type"+str(type(USER_IP)))
 	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
 	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT+"::\r\n"
+	print(join_requ)
 	# send a JOIN request to roomserver
 	USER_SCKT.send(join_requ.encode("ascii"))
 
@@ -575,7 +577,7 @@ def do_Join():
 	# F:error message::\r\n
 	if join_resp_decode[0] == "F":
 		CmdWin.insert(1.0, "\nSome error occured in the Room server. Please try again later.")
-		CmdWin.insert("\n"+join_resp_decode[1])
+		CmdWin.insert(1.0, "\n"+join_resp_decode[1])
 		return
 
 	# room server responds normally
@@ -757,6 +759,8 @@ CmdWin.config(yscrollcommand=bottscroll.set)
 bottscroll.config(command=CmdWin.yview)
 
 def main():
+	global USER_SCKT, USER_IP, USER_HASHID
+
 	if len(sys.argv) != 4:
 		print("P2PChat.py <server address> <server port no.> <my port no.>")
 		sys.exit(2)
@@ -769,6 +773,7 @@ def main():
 	try:
 		USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
 		USER_IP = USER_SCKT.getsockname()[0]
+		print("USER_IP: ", USER_IP)
 		USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
 	except socket.error as cErr:
 		CmdWin.insert(1.0, "\nFail to reach the server")
