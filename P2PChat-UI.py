@@ -127,11 +127,12 @@ def hash_list():
 def p2p_handshake(hashid, sckt):
 	# List out global variables
 	global USER_ROOM, USER_NAME, USER_IP, USER_PORT,  USER_MSGID, USER_MEMBER
-
+	print("[p2p_handshake] start")
 	sckt.settimeout(3.0)
 	# P:roomname:username:IP:Port:msgID::\r\n
 	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + str(USER_MSGID) + "::\r\n"
 	# send message
+	print("[p2p_handshake] send")
 	sckt.send(msg.encode("ascii"))
 	# receive message
 	try:
@@ -142,17 +143,22 @@ def p2p_handshake(hashid, sckt):
 	except socket.error as err:
 		print("[p2p_handshake] Receive Error: ", err)
 		return False
-
+	print("[p2p_handshake] recv")
 	rmsg_lst = rmsg.decode("ascii").split(':')
+	print("[p2p_handshake] get rmsg_lst")
+	print("[p2p_handshake] ", rmsg_lst)
 	
 	# no error: get S:msgID::\r\n
-	if (rmsg_lst[0] != "S"):
+	if (rmsg_lst[0] != "S") or (len(rmsg_lst)!= 4):
+		print("[p2p_handshake] wrong format rmsg_lst")
 		return False
 	
 	gLock.acquire()
+	print("[p2p_handshake] right format rmsg_lst")
 	USER_MEMBER[hashid][3] = rmsg_lst[1]
 	gLock.release()
 
+	print("[p2p_handshake] end")
 	return True
 	
 
@@ -164,7 +170,6 @@ def send_join():
 
 	# JOIN request -- J:roomname:username:userIP:userPort::\r\n
 	join_requ = "J:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT+"::\r\n"
-	print(join_requ)
 	# send a JOIN request to roomserver
 	USER_SCKT.send(join_requ.encode("ascii"))
 
@@ -217,12 +222,14 @@ def connect_member(sckt):
 				USER_FSCKT[0] = (lst[start], sckt)
 				gLock.release()
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
+				print("[connect_member] finish p2p")
 				return True
 			else:
 				start = (start+1) % len(lst)
 				gLock.release()
+				print("[connect_member] failed p2p")
 				continue
-		
+	print("[connect_member] end while loop")
 	return False
 
 
@@ -381,13 +388,17 @@ def client_thd(csckt, caddr):
 		csckt.close()
 		return
 
-	if len(rmsg_seg) >= 6:
-		# record peer info
-		peer_name = rmsg_seg[2]
-		peer_ip = rmsg_seg[3]
-		peer_port = rmsg_seg[4]
-		peer_msgID = rmsg_seg[5]
-		peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
+	if len(rmsg_seg) < 6:
+		csckt.close()
+		return
+
+	# record peer info
+	peer_name = rmsg_seg[2]
+	peer_ip = rmsg_seg[3]
+	peer_port = rmsg_seg[4]
+	peer_msgID = rmsg_seg[5]
+	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
+		
 
 	gLock.acquire()
 	result = USER_MEMBER.get(peer_hashID, "F")
