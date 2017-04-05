@@ -680,7 +680,7 @@ def do_Send():
 
 def do_Quit():
 	# List out global variables
-	global USER_STATE, KEEPALIVE
+	global USER_STATE, KEEPALIVE, USER_FSCKT, USER_BSCKT, USER_THREAD
 
 	CmdWin.insert(1.0, "\nPress Quit")
 	
@@ -760,6 +760,8 @@ CmdWin.config(yscrollcommand=bottscroll.set)
 bottscroll.config(command=CmdWin.yview)
 
 def main():
+
+	global USER_SCKT, USER_IP, USER_HASHID, USER_PORT
 	if len(sys.argv) != 4:
 		print("P2PChat.py <server address> <server port no.> <my port no.>")
 		sys.exit(2)
