@@ -52,18 +52,22 @@ class KEEPALIVETimerClass(threading.Thread):
 #
 
 # server info
-SERVER_IP = 0
+SERVER_IP = ""
 SERVER_PORT = 0
 
 # user info
 USER_STATE = "START"
 USER_NAME = ""
+
 # user ip address
 USER_IP = ""
+
 # user port number
 USER_PORT = sys.argv[3]
+
 # user chatroom name
 USER_ROOM = ""
+
 # Create a socket for sending messages to the server
 USER_SCKT = socket.socket()
 
@@ -546,7 +550,6 @@ def do_Join():
 	
 	# List out global variables
 	global USER_STATE, USER_ROOM, KEEPALIVE, USER_THREAD
-	
 	
 	CmdWin.insert(1.0, "\nPress JOIN")
 	
