@@ -41,8 +41,9 @@ USER_SCKT = socket.socket()
 # socket list for FORWARD LINK
 USER_FSCKT = []
 
-# socket list for BACKWARD LINK
-USER_BSCKT = []
+# a dictionary for BACKWARD LINK
+# (peer_hashID, peer_socket)
+USER_BSCKT = {}
 
 # user ip address
 USER_IP = ""
@@ -54,7 +55,7 @@ USER_PORT = sys.argv[3]
 USER_ROOM = ""
 
 # a dictionary for members in the same chatroom
-# (hashID, (name, ip, port, msgid))
+# (member_hashID, (name, ip, port, msgid))
 USER_MEMBER = {}
 
 # user message ID (starting from 0)
@@ -113,7 +114,8 @@ def check_connection(ip, port):
 	return True
 
 def set_connection(ip, port):
-	
+
+	return
 
 def hash_list():
 	gList = []
@@ -198,20 +200,118 @@ def client_thd(csckt, caddr):
 	# get name of thread
 	myName = threading.currentThread().name
 	
-	# handshaking procedure
+	# Handshaking procedure
+	# receive request message
 	try:
-		msg = csckt.recv(500)
+		rmsg = csckt.recv(500)
 	except socket.error as err:
-		print("[client_thd] Message receiving error from %s: %s" % (myName, err))
+		print("[client_thd] Request message error at thread %s: %s\n" % (myName, err))
+		return
+
+	rmsg_seg = rmsg.decode("ascii").split(':')
+
+	if (rmsg_seg[0] != 'P') || (rmsg_seg[1] != USER_ROOM):
+		CmdWin.insert(1.0, "\nSome error occured in the hanshaking procedure.")
+		return
+
+	# record peer info
+	peer_name = rmsg_seg[2]
+	peer_ip = rmsg_seg[3]
+	peer_port = rmsg_seg[4]
+	peer_msgID = rmsg_seg[5]
+	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
+
+	# check if the peer is in the chatroom
+	gLock.acquire()
+	result = USER_MEMBER.get(peer_hashID, "F")
+	gLock.release()
+	if result == "F":
+		# send a join request to room server for the latest member list
+		join_resp_decode = send_join()
+		if !(peer_name in join_resp_decode):
+			print("[client_thd] %s not in member list, terminating connection at thread %s\n" % (peer_name, myName))
+			csckt.close()
+			return
+
+	# send response message
+	gLock.acquire()
+	smsg = "S:" + USER_MSGID + "::\r\n"
+	csckt.send(smsg.encode("ascii"))
+	gLock.release()
+
+	CmdWin.insert(1.0, "\n%s has linked to me" % peer_name)
+
+	# update USER_STATE
+	USER_STATE = "CONNECTED"
 
 	# add the new client socket to the USER_BSCKT
 	gLock.acquire()
-	hashID = sdbm_hash()
-	USER_BSCKT[]=caddr
+	USER_BSCKT[peer_hashID] = csckt
 	gLock.release()
+
+	# set blocking duration to 1.0 second
+	cskt.settimeout(1.0)
+
+	# Text flooding
+	while all_thread_running:
+	
+		# wait for any message to arrive
+		try:
+			rmsg = cskt.recv(500)
+		except socket.timeout:
+			continue
+		except socket.error as err:
+			print("[client_thd] Message receiving error at thread %s: %s\n" % (myName, err))
+			continue
+
+		# if a message arrived, do the following
+		if rmsg:
+			CmdWin.insert(1.0,"\nGot a message.")
+			
+			rmsg_seg = rmsg.decode("ascii").split(':')
+			
+			if rmsg_seg[0] != 'T':
+				print("[client_thd] Message flooding error (not a TEXT message) at thread %s: %s\n" % myName)
+				continue
+			
+			if rmsg_seg[1] != USER_ROOM:
+				print("[client_thd] Message flooding error (not the same chatroom) at thread %s: %s\n" % myName)
+				continue
+
+			if
+			
+			
+			
+			
+			
+			CmdWin.insert(1.0,"\nRelay it to other peers.")
+
+			gLock.acquire()
+			# backward links
+			if len(USER_BSCKT) > 1:
+				for hid, each_sckt in USER_BSCKT:
+					if each_sckt != csckt:
+						each_sckt.send(rmsg)
+			# forward link
+			for each_sckt in USER_FSCKT:
+				each_sckt.send(rmsg)
+			gLock.release()
+
+		# else a broken connection is detected, do the following
+		else:
+			print("[client_thd] The peer connection is broken at thread %s\n" % myName)
+			
+			# remove the backward link
+			gLock.acquire()
+			del USER_BSCKT[peer_hashID]
+			gLock.release()
+			break
+
+	# termination
+	print("[client_thd] Termination at thread %s\n" % myName)
 	return
 
-	
+
 def listen_thd():
 
 	# create a socket for continuous listening
@@ -243,7 +343,7 @@ def listen_thd():
 			continue
 
 		# the system just accepted a new client connection
-		print("[listen_thd] A new client has arrived. It is at:", caddr)
+		print("[listen_thd] A new client has arrived. It is at: \n", caddr)
 
 		# generate a name to this client
 		cname = caddr[0]+'_'+str(caddr[1])
@@ -380,6 +480,7 @@ def do_Join():
 		USER_STATE = "JOINED"
 
 		# concatenate a string for all of the room members in the room
+		gLock.acquire()
 		room_member = "\nHere are the members in your chatgroup: "
 		count = 1
 		index = 2
@@ -396,6 +497,7 @@ def do_Join():
 			USER_MEMBER[hashid] = (name, ip, port,0)
 			count += 1
 			index += 3
+		gLock.release()
 
 		# show chatroom members
 		CmdWin.insert(1.0, room_member)
