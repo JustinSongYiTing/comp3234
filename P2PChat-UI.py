@@ -202,7 +202,7 @@ def connect_member(sckt):
 		else:
 			# set_connection to lst[start]
 			try:
-				sckt.connect(ip, int(port))
+				sckt.connect((ip, int(port)))
 			except socket.error as serr:
 				print("[connect_member] socket connect error: ", serr)
 				start = (start+1) % lst.size()
