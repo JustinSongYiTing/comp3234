@@ -10,6 +10,7 @@ from tkinter import *
 import sys
 import socket
 import threading
+import time
 
 
 #
@@ -115,7 +116,6 @@ def hash_list():
 	gList = []
 	gLock.acquire()
 	for hid, info in USER_MEMBER.items():
-		print("[hash_list] ", hid)
 		gList.append(hid)
 	gLock.release()
 	return sorted(gList)
@@ -131,7 +131,7 @@ def p2p_handshake(hashid, sckt):
 	sckt.send(msg.encode("ascii"))
 	# receive message
 	try:
-		rmsg = sckt.receive(500)
+		rmsg = sckt.recv(500)
 	# error: No response; peer just close the connection
 	except socket.timeout:
 		return False
@@ -301,6 +301,7 @@ def text_flooding(sckt, linkType):
 				index = True
 				while index:
 					index = not connect_member(sckt)
+					time.sleep(2.0)
 				
 				# continue with the newly establiched forwrd link
 				continue
@@ -336,12 +337,11 @@ def forward_thd():
 	index = True
 	while index:
 		# build a forward link
-		index = connect_member(fsckt)
-		if index:
-			### Text flooding procedure ###
-			text_flooding(fckt, "Forward")
-		else:
-			continue
+		index = not connect_member(fsckt)
+		time.sleep(2.0)
+	
+
+	text_flooding(fckt, "Forward")
 	return
 
 def client_thd(csckt, caddr):
@@ -391,7 +391,7 @@ def client_thd(csckt, caddr):
 
 	# send response message
 	gLock.acquire()
-	smsg = "S:" + USER_MSGID + "::\r\n"
+	smsg = "S:" + str(USER_MSGID) + "::\r\n"
 	csckt.send(smsg.encode("ascii"))
 	gLock.release()
 
