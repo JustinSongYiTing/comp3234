@@ -801,7 +801,7 @@ def do_Quit():
 	gLock.acquire()
 	for each_sckt in USER_FSCKT:
 		each_sckt[1].close()
-	for each_hashID, each_sckt in USER_BSCKT:
+	for each_hashID, each_sckt in USER_BSCKT.items():
 		each_sckt.close()
 
 	# wait for all threads to terminate
