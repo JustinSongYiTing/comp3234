@@ -194,7 +194,6 @@ def connect_member(sckt):
 
 	if len(lst) == 1:
 		return False
-	print("[connect_member] user hashid is ", USER_HASHID)
 	start = (lst.index(USER_HASHID)+1)% len(lst)
 	
 	while (lst[start] != USER_HASHID):
@@ -220,15 +219,14 @@ def connect_member(sckt):
 			if p2p_handshake(lst[start], sckt):
 				USER_FSCKT.append((lst[start], sckt))
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0])
+				
 				gLock.acquire()
-				print("[connect_member] state connected")
 				USER_STATE = "CONNECTED"
 				gLock.release()
 				return True
 			else:
 				start = (start+1) % len(lst)
 				continue
-	print("[connect_member] end while loop")
 	return False
 
 
@@ -774,7 +772,7 @@ def do_Send():
 	# FORWARD LINK
 	if (len(USER_FSCKT) != 0):
 		# send message
-		USER_FSCKT[1].send(message.encode("ascii"))
+		USER_FSCKT[0].send(message.encode("ascii"))
 	# BACKWARD LINK
 	for hid, sckt in USER_BSCKT.items():
 		# send message
