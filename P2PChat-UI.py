@@ -126,7 +126,7 @@ def p2p_handshake(hashid, sckt):
 
 	sckt.settimeout(3.0)
 	# P:roomname:username:IP:Port:msgID::\r\n
-	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + USER_MSGID + "::\r\n"
+	msg = "P:" + USER_ROOM + ":" + USER_NAME + ":" + USER_IP + ":" + USER_PORT + ":" + str(USER_MSGID) + "::\r\n"
 	# send message
 	sckt.send(msg.encode("ascii"))
 	# receive message
@@ -185,8 +185,8 @@ def connect_member(sckt):
 
 	if len(lst) == 1:
 		return False
-	
-	start = lst.index(USER_HASHID)+1
+	print("[connect_member] user hashid is ", USER_HASHID)
+	start = (lst.index(USER_HASHID)+1)% len(lst)
 	
 	while (lst[start] != USER_HASHID):
 	
@@ -196,16 +196,16 @@ def connect_member(sckt):
 		
 		# if there is a BACKWARD LINK between start and this program
 		if lst[start] in USER_BSCKT:
-			start = (start+1) % lst.size()
+			start = (start+1) % len(lst)
 			gLock.release()
 			continue
 		else:
 			# set_connection to lst[start]
 			try:
-				sckt.connect(ip, int(port))
+				sckt.connect((ip, int(port)))
 			except socket.error as serr:
 				print("[connect_member] socket connect error: ", serr)
-				start = (start+1) % lst.size()
+				start = (start+1) % len(lst)
 				gLock.release()
 				continue
 
@@ -215,7 +215,7 @@ def connect_member(sckt):
 				CmdWin.insert(1.0, "\nLink to %s" % USER_MEMBER[lst[start]][0] )
 				return True
 			else:
-				start = (start+1) % lst.size()
+				start = (start+1) % len(lst)
 				gLock.release()
 				continue
 		
@@ -476,7 +476,7 @@ def listen_thd():
 def do_User():
 	
 	# List out global variables
-	global USER_STATE, USER_NAME
+	global USER_STATE, USER_NAME, USER_HASHID
 
 	CmdWin.insert(1.0, "\nPress List")
 	
@@ -496,6 +496,7 @@ def do_User():
 	CmdWin.insert(1.0, outstr)
 	userentry.delete(0, END)
 
+	USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
 	# Set USER_STATE to NAMED
 	gLock.acquire()
 	USER_STATE = "NAMED"
@@ -614,6 +615,7 @@ def do_Join():
 			room_member += ("\t" + port)
 			# fill in member information
 			hashid = sdbm_hash(name+ip+port)
+			print("[do_Join] add ", name, " ", hashid)
 			USER_MEMBER[hashid] = (name, ip, port,0)
 			count += 1
 			index += 3
@@ -714,7 +716,7 @@ def do_Quit():
 	
 
 	# wait for all threads to terminate
-	gLock.acquire()
+	
 	for each_thread in USER_THREAD:
 		each_thread.join()
 	gLock.release()
@@ -797,7 +799,6 @@ def main():
 	try:
 		USER_SCKT.connect((sys.argv[1], int(sys.argv[2])))
 		USER_IP = USER_SCKT.getsockname()[0]
-		USER_HASHID = sdbm_hash(USER_NAME + USER_IP + USER_PORT)
 	except socket.error as cErr:
 		CmdWin.insert(1.0, "\nFail to reach the server")
 		print("Connection error: ", cErr)
