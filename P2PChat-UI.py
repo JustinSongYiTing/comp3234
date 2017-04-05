@@ -119,7 +119,6 @@ def hash_list():
 	gList = []
 	gLock.acquire()
 	for hid, info in USER_MEMBER.items():
-		print("[hash_list] ", hid)
 		gList.append(hid)
 	gLock.release()
 	
@@ -321,8 +320,6 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			else:
 				USER_MEMBER[int(origin_hashID)] = (USER_MEMBER[int(origin_hashID)][0], USER_MEMBER[int(origin_hashID)][1], USER_MEMBER[int(origin_hashID)][2], origin_msgID)
 			gLock.release()
-
-
 
 			# display the message in the Message Window
 			MsgWin.insert(1.0, "\n[%s] %s" % (origin_name, origin_msgCon))
@@ -782,6 +779,9 @@ def do_Send():
 
 	# display message
 	MsgWin.insert(1.0, "\n["+USER_NAME+"] "+msg)
+	
+	userentry.delete(0, END)
+
 
 	return
 
