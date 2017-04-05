@@ -159,7 +159,6 @@ def p2p_handshake(hashid, sckt):
 	gLock.release()
 
 
-	print("[p2p_handshake] end")
 	return True
 	
 
@@ -235,7 +234,8 @@ def connect_member(sckt):
 
 def text_flooding(sckt, linkType, myName, peer_hashID):
 
-	global all_thread_running, USER_MEMBER, USER_ROOM, USER_BSCKT
+	global all_thread_running, USER_MEMBER, USER_FSCKT, USER_BSCKT, USER_ROOM
+
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
@@ -389,6 +389,8 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 def forward_thd():
 
+	global USER_STATE
+	
 	fsckt = socket.socket()
 
 	index = True
@@ -402,10 +404,12 @@ def forward_thd():
 	gLock.acquire()
 	print("[forward_thd] state is connected")
 	USER_STATE = "CONNECTED"
+	print("At state %s " % USER_STATE)
 	gLock.release()
+
 	dummy = -1
 	text_flooding(fsckt, "Forward", "forwardThread", dummy)
-	print("[forward_thd] after text_flooding")
+	
 	return
 
 def client_thd(csckt, caddr):
