@@ -364,18 +364,19 @@ def client_thd(csckt, caddr):
 
 	rmsg_seg = rmsg.decode("ascii").split(':')
 
-	# record peer info
-	peer_name = rmsg_seg[2]
-	peer_ip = rmsg_seg[3]
-	peer_port = rmsg_seg[4]
-	peer_msgID = rmsg_seg[5]
-	peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
-
 	# check request message validity
 	if (rmsg_seg[0] != 'P') or (rmsg_seg[1] != USER_ROOM):
 		print("[client_thd] Handshaking error at thread %s" % myName)
 		csckt.close()
 		return
+
+	if len(rmsg_seg) >= 6:
+		# record peer info
+		peer_name = rmsg_seg[2]
+		peer_ip = rmsg_seg[3]
+		peer_port = rmsg_seg[4]
+		peer_msgID = rmsg_seg[5]
+		peer_hashID = sdbm_hash(peer_name+peer_ip+peer_port)
 
 	gLock.acquire()
 	result = USER_MEMBER.get(peer_hashID, "F")
