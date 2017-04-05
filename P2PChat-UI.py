@@ -113,9 +113,12 @@ def hash_list():
 	global USER_MEMBER
 
 	gList = []
+	gLock.acquire()
 	for hid, info in USER_MEMBER.items():
+		print("[hash_list] ", hid)
 		gList.append(hid)
-	return gList.sort()
+	gLock.release()
+	return sorted(gList)
 
 def p2p_handshake(hashid, sckt):
 	# List out global variables
@@ -178,9 +181,8 @@ def connect_member(sckt):
 	global USER_HASHID, USER_MEMBER, USER_BSCKT, USER_FSCKT
 
 	# sorted list with member hashID 
-	lst = []
 	lst = hash_list()
-	
+
 	if len(lst) == 1:
 		return False
 	
@@ -221,6 +223,8 @@ def connect_member(sckt):
 
 
 def text_flooding(sckt, linkType):
+
+	global all_thread_running
 
 	# set blocking duration to 1.0 second
 	sckt.settimeout(1.0)
@@ -412,7 +416,7 @@ def client_thd(csckt, caddr):
 
 def listen_thd():
 	# List out global variables
-	global USER_THREAD, USER_IP, USER_PORT
+	global USER_THREAD, USER_IP, USER_PORT, all_thread_running
 
 	# create a socket for continuous listening
 	listen_sckt = socket.socket()
@@ -689,7 +693,7 @@ def do_Send():
 
 def do_Quit():
 	# List out global variables
-	global USER_STATE, KEEPALIVE, USER_FSCKT, USER_BSCKT, USER_THREAD
+	global USER_STATE, KEEPALIVE, USER_FSCKT, USER_BSCKT, USER_THREAD, all_thread_running
 
 	CmdWin.insert(1.0, "\nPress Quit")
 	
@@ -704,15 +708,17 @@ def do_Quit():
 		each_sckt.close()
 	for each_hashID, each_sckt in USER_BSCKT:
 		each_sckt.close()
-	gLock.release()
+	
 
 	# wait for all threads to terminate
 	for each_thread in USER_THREAD:
 		each_thread.join()
 
+
 	print("All threads terminated. Bye!")
 	
 	USER_STATE = "TERMINATED"
+	gLock.release()
 	KEEPALIVE.stop()
 	sys.exit(0)
 
