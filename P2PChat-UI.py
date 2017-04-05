@@ -178,6 +178,7 @@ def connect_member(sckt):
 	global USER_HASHID, USER_MEMBER, USER_BSCKT, USER_FSCKT
 
 	# sorted list with member hashID 
+	lst = []
 	lst = hash_list()
 	
 	if len(lst) == 1:
@@ -470,6 +471,8 @@ def do_User():
 	
 	# List out global variables
 	global USER_STATE, USER_NAME
+
+	CmdWin.insert(1.0, "\nPress List")
 	
 	# Check state. Only accept request before the user join any chatgroup
 	if USER_STATE != "START" and USER_STATE != "NAMED" :
@@ -639,12 +642,18 @@ def do_Send():
 	global USER_STATE, USER_MSGID, USER_MEMBER, USER_HASHID, USER_ROOM, USER_NAME, USER_FSCKT, USER_BSCKT
 
 	CmdWin.insert(1.0, "\nPress Send")
+
+	
 	msg = userentry.get()
 	# check if user input is empty
 	if msg == "":
 		return
 	# check if the program has joined or connected to a chatroom program
 	gLock.acquire()
+	if len(USER_MEMBER) == 1:
+		CmdWin.insert(1.0, "\nNo other member in your chatroom. Please wait for others.")
+		gLock.release()
+		return
 	if USER_STATE == "JOINED":
 		CmdWin.insert(1.0, "\nYou have not yet connect to a chatroom network. Please try again later.")
 		gLock.release()
