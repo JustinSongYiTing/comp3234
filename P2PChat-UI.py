@@ -256,7 +256,7 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 		except socket.timeout:
 			continue
 		except socket.error as err:
-			print("[client_thd] Message receiving error at thread %s: %s\n" % (myName, err))
+			print("[text_flooding] Message receiving error at thread %s: %s\n" % (myName, err))
 			continue
 
 		# if a message arrived, do the following
@@ -338,11 +338,19 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 			# backward links
 			if len(USER_BSCKT) > 0:
 				for each_hid, each_sckt in USER_BSCKT.items():
-					if each_hid != origin_hashID:
+					if each_hid != int(origin_hashID):
+						print("[text_flooding] backward")
+						print("[text_flooding] origin_hashID: ", origin_hashID)
+						print("[text_flooding] each_hashID: ", each_hid)
 						each_sckt.send(rmsg)
 			# forward link
 			for each_sckt in USER_FSCKT:
-				if each_sckt[0] != origin_hashID:
+				if each_sckt[0] != int(origin_hashID):
+					print("[text_flooding] forward")
+					print("[text_flooding] origin_hashID: ", origin_hashID)
+					print("[text_flooding] origin_hashID type: ", type(origin_hashID))
+					print("[text_flooding] each_hashID: ", each_sckt[0])
+					print("[text_flooding] each_hashID type: ", type(each_sckt[0]))
 					each_sckt[1].send(rmsg)
 			gLock.release()
 
@@ -360,14 +368,14 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 				gLock.release()
 				
 				# search for a new forward link
-				index = True
-				sckt = socket.socket()
-				while index:
-					index = not connect_member(sckt)[0]
-					time.sleep(2.0)
+				#index = True
+				#sckt = socket.socket()
+				#while index:
+				#	index = not connect_member(sckt)[0]
+				#	time.sleep(2.0)
 				
 				# continue with the newly establiched forwrd link
-				continue
+				return
 		
 			else:
 				# remove the backward link from list
@@ -394,19 +402,24 @@ def text_flooding(sckt, linkType, myName, peer_hashID):
 
 def forward_thd():
 	
-	fsckt = socket.socket()
+	f_flag = True
 
-	flag = True
-	while flag:
-		# build a forward link
-		flag = not connect_member(fsckt)[0]
-		if flag:
-			time.sleep(2.0)
+	while f_flag:
+		fsckt = socket.socket()
 
-	peer_hashID = connect_member(fsckt)[1]
-	
-	### Text flooding procedure ###
-	text_flooding(fsckt, "Forward", "forwardThread", peer_hashID)
+		flag = True
+		while flag:
+			# build a forward link
+			(result, peer_hashID) = connect_member(fsckt)
+			flag = not result
+			if flag:
+				time.sleep(2.0)
+		### Text flooding procedure ###
+		text_flooding(fsckt, "Forward", "forwardThread", peer_hashID)
+		
+		gLock.acquire()
+		f_flag = all_thread_running
+		gLock.release()
 	
 	return
 
